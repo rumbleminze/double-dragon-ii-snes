@@ -22,8 +22,41 @@ import (
 // .byte $HL, $HL, ......
 //
 // with 16 bytes per line
+//
+// Double Dragon II code is split up into the following way:
+// 00000 - 1FFFF - (banks 0 - 7) PRG ROM, technically we should splite these into 2KB instead of 4KB as that's
+// 				     how MMC3 deals with things.  the last 4 KB is fixed in place.
+//				     if we wanted to approach MMC3 the same way we dealth with MMC1,
+// 					 we'd need to keep every pair of banks 0 - D
+// 				     that'd be 182 combinations :eek:
+// 				     we'll need to do something else.
+//				     there's also a few places that are tiles within here
+//
+// CHROM Banks are
+//  0000 - 0FFFF - BG Tiles, always loaded in 4KB banks
+// 10000 - 107FF - Player Sprite Tiles, always loaded in the first bank of sprites
+// 10800 - Roper
+// 11000 - Linda
+// 11800 - Abobo
+// 12000 - Burnov dying
+// 12800 - Shadow you
+// 13000 - Chin
+// 13800 - William
+// 14000 - Burnov fighting
+// 14800 - Abore
+// 15000 - Right Arm
+// 15800 - Ninja
+// 16000 - Mysterious warrior
+// 16800 - between fight sprites
+// 17000 - more BG tiles, for title screen
+// 18000 - more mysterious warrior tiles
+// 18800 - more Burnov tiles
+// 19000 - more Roper tiles (Roper w/Dynamite?)
+// 19800 - 1CFFF - cutscene tiles
+// 1D000 - end - Data
+
 func main() {
-	inputFile := flag.String("in", "Chip 'n Dale Rescue Rangers (U) [!].nes", "input file to split out")
+	inputFile := flag.String("in", "Double Dragon II - The Revenge (U).nes", "input file to split out")
 
 	inputBytes, _ := ioutil.ReadFile(*inputFile)
 	var banks [][]byte
@@ -90,58 +123,58 @@ func main() {
 				tileset++
 			}
 
-			// if i < 14 || (byteIndex < 0x2000 && i == 14) {
-			// converts these to SNES expected format
-			bankFile.WriteString(
-				fmt.Sprintf(
-					".byte $%02X, $%02X, $%02X, $%02X, $%02X, $%02X, $%02X, $%02X, $%02X,"+
-						" $%02X, $%02X, $%02X, $%02X, $%02X, $%02X, $%02X\n",
-					banks[i][byteIndex],
-					banks[i][byteIndex+8],
-					banks[i][byteIndex+1],
-					banks[i][byteIndex+1+8],
-					banks[i][byteIndex+2],
-					banks[i][byteIndex+2+8],
-					banks[i][byteIndex+3],
-					banks[i][byteIndex+3+8],
-					banks[i][byteIndex+4],
-					banks[i][byteIndex+4+8],
-					banks[i][byteIndex+5],
-					banks[i][byteIndex+5+8],
-					banks[i][byteIndex+6],
-					banks[i][byteIndex+6+8],
-					banks[i][byteIndex+7],
-					banks[i][byteIndex+7+8],
-				),
-			)
-			bankFile.WriteString(".byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00\n")
-			// If some of the banks in the PRG rom are actually data banks, then we need to _not_ format them at 4bpp.
-			// for Double Dragon all of the banks are just tile data.
-			// } else {
-			// 	// these are data banks that need to be formatted differently
-			// 	bankFile.WriteString(
-			// 		fmt.Sprintf(
-			// 			".byte $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00\n"+
-			// 				".byte $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00\n",
-			// 			banks[i][byteIndex],
-			// 			banks[i][byteIndex+1],
-			// 			banks[i][byteIndex+2],
-			// 			banks[i][byteIndex+3],
-			// 			banks[i][byteIndex+4],
-			// 			banks[i][byteIndex+5],
-			// 			banks[i][byteIndex+6],
-			// 			banks[i][byteIndex+7],
-			// 			banks[i][byteIndex+8],
-			// 			banks[i][byteIndex+9],
-			// 			banks[i][byteIndex+10],
-			// 			banks[i][byteIndex+11],
-			// 			banks[i][byteIndex+12],
-			// 			banks[i][byteIndex+13],
-			// 			banks[i][byteIndex+14],
-			// 			banks[i][byteIndex+15],
-			// 		),
-			// 	)
-			// }
+			if i < 15 || (byteIndex < 0x1000 && i == 15) {
+				// converts these to SNES expected format
+				bankFile.WriteString(
+					fmt.Sprintf(
+						".byte $%02X, $%02X, $%02X, $%02X, $%02X, $%02X, $%02X, $%02X, $%02X,"+
+							" $%02X, $%02X, $%02X, $%02X, $%02X, $%02X, $%02X\n",
+						banks[i][byteIndex],
+						banks[i][byteIndex+8],
+						banks[i][byteIndex+1],
+						banks[i][byteIndex+1+8],
+						banks[i][byteIndex+2],
+						banks[i][byteIndex+2+8],
+						banks[i][byteIndex+3],
+						banks[i][byteIndex+3+8],
+						banks[i][byteIndex+4],
+						banks[i][byteIndex+4+8],
+						banks[i][byteIndex+5],
+						banks[i][byteIndex+5+8],
+						banks[i][byteIndex+6],
+						banks[i][byteIndex+6+8],
+						banks[i][byteIndex+7],
+						banks[i][byteIndex+7+8],
+					),
+				)
+				bankFile.WriteString(".byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00\n")
+				// If some of the banks in the PRG rom are actually data banks, then we need to _not_ format them at 4bpp.
+				// for Double Dragon II is is $1D000 - $1FFFF, i.e. the last 0x3000 bytes of bank 16.
+			} else {
+				// these are data banks that need to be formatted differently
+				bankFile.WriteString(
+					fmt.Sprintf(
+						".byte $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00\n"+
+							".byte $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00, $%02X, $00\n",
+						banks[i][byteIndex],
+						banks[i][byteIndex+1],
+						banks[i][byteIndex+2],
+						banks[i][byteIndex+3],
+						banks[i][byteIndex+4],
+						banks[i][byteIndex+5],
+						banks[i][byteIndex+6],
+						banks[i][byteIndex+7],
+						banks[i][byteIndex+8],
+						banks[i][byteIndex+9],
+						banks[i][byteIndex+10],
+						banks[i][byteIndex+11],
+						banks[i][byteIndex+12],
+						banks[i][byteIndex+13],
+						banks[i][byteIndex+14],
+						banks[i][byteIndex+15],
+					),
+				)
+			}
 		}
 	}
 

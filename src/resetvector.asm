@@ -11,8 +11,6 @@ PHA
 PLB
 JSL $A08000
 
-; this needs to be the NES game's reset vector
-JML $A1FFE0
 nmi:
     PHP
     PHA

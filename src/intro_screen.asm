@@ -162,7 +162,7 @@ do_intro:
     JSR write_intro_palette
     JSR write_default_palettes
     JSR write_intro_tiles
-    ; JSR write_intro_sprites
+    JSR write_intro_sprites
 
     LDA #$0F
     STA INIDISP
@@ -171,7 +171,7 @@ do_intro:
 
 :
     jsr check_for_code_input
-    ; jsr check_for_sprite_swap
+    jsr check_for_sprite_swap
     ; jsr check_for_msu
 
     ; check for "start"
@@ -185,17 +185,102 @@ do_intro:
     STA INIDISP_STATE
     STA INIDISP
 
-:   RTS
+    RTS
+
+sprite_swap_table:
+;      oamo    m?  OAM1/2
+.byte $00, $80, $00  ; roper, 80 offset, oam 1
+.byte $00, $00, $01  ; linda, OBSEL + 0, 1
+; .byte $00, $80, $01  ; abobo
+; .byte $01, $01, $01  ; Burnov
+; .byte $01, $00, $01  ; Shadow
+.byte $02, $00, $01  ; Chin
+.byte $02, $80, $01  ; william
+.byte $03, $00, $01  ; Right Hand
+.byte $03, $80, $01  ; Ninja
+sprite_swap_table_end:
+
+CURR_ENEMY_INDEX = $00
+NUM_ENEMIES = 16 ; ((sprite_swap_table_end - sprite_swap_table)/3)
+; NUM_ENEMIES = 4
+
+: rts
 check_for_sprite_swap:
 
     LDA JOYTRIGGER1
     AND #$20
     CMP #$20
     BNE :-
-    jsr load_intro_tilesets
-    LDA #$0F
-    STA INIDISP
-:   rts
+
+    LDA CURRENT_ENEMY_LOADED
+    INC
+    CMP #NUM_ENEMIES
+    BNE :+    
+    LDA #$00
+:
+    jsl load_enemy_sprites
+;     ASL a
+;     CLC
+;     ADC CURR_ENEMY_INDEX
+;     TAY
+;     LDA sprite_swap_table, Y
+
+;     ASL
+;     ASL
+;     ASL
+;     ORA #%0000010
+;     STA OBSEL
+
+    INY
+    PHY
+    LDA CURRENT_ENEMY_TILE_OFFSET
+    BEQ :++
+        LDY #$00
+        LDX #$0A
+      : LDA SNES_OAM_START + 2, Y
+        ORA #$80
+        STA SNES_OAM_START + 2, Y
+
+        INY
+        INY
+        INY
+        INY
+        DEX 
+        BNE :-
+        BRA :+++
+
+    :   LDY #$00
+        LDX #$0A
+      : LDA SNES_OAM_START + 2, Y
+        AND #$7F
+        STA SNES_OAM_START + 2, Y
+
+        INY
+        INY
+        INY
+        INY
+        DEX 
+        BNE :-
+    : PLY
+
+    INY
+    LDA CURRENT_SPRITE_TABLE_OFFSET
+    STA $02
+    LDY #$00
+    LDX #$0A
+:   LDA SNES_OAM_START + 3, Y
+    AND #$FE
+    ORA $02
+    STA SNES_OAM_START + 3, Y
+    INY
+    INY
+    INY
+    INY
+    DEX
+    BNE :-
+    JSR dma_oam_table
+    rts
+
 check_for_msu:
     LDA JOYTRIGGER1
     AND #$01
@@ -219,20 +304,21 @@ check_for_msu:
 ; can put the data here    
 intro_sprite_info:
     ; x, y, sprite
-    .byte $80, $30, $00, $00
-    .byte $80, $38, $01, $00
-    .byte $88, $30, $02, $00
-    .byte $88, $38, $03, $00
-    .byte $80, $40, $08, $00
-    .byte $80, $48, $09, $00
-    .byte $88, $40, $0a, $00
-    .byte $88, $48, $0B, $00
-    .byte $80, $78, $54, $40
+    .byte $80, $40, $80, $00
+    .byte $88, $40, $81, $00
+    .byte $80, $48, $90, $00
+    .byte $88, $48, $91, $00
+    .byte $80, $50, $A0, $00
+    .byte $88, $50, $A1, $00
+    .byte $80, $58, $B0, $00
+    .byte $88, $58, $B1, $00
+    .byte $80, $60, $C0, $00
+    .byte $88, $60, $C1, $00
     .byte $ff
 
 write_intro_sprites:
     LDY #$00
-    LDX #$09
+    LDX #$0A
 
 :   LDA intro_sprite_info, y
     STA SNES_OAM_START, y
@@ -255,7 +341,7 @@ write_intro_sprites:
 
 ; loads up the tileset that has the tiles for the intro
 load_intro_tilesets:
-    lda #$01
+    lda #$00
     sta NMITIMEN
     LDA VMAIN_STATE
     AND #$0F
@@ -266,28 +352,71 @@ load_intro_tilesets:
 
     ; load index 20 bank into both sets of tiles
     ; 20 is our custom intro screen tiles
-    LDA #$00
+    LDA #$20
     STA CHR_BANK_BANK_TO_LOAD
     LDA #$01
     STA CHR_BANK_TARGET_BANK
     JSL load_chr_table_to_vm
 
-    LDA #$00
+    LDA #SPRITE_INDEX_PLAYER
     STA CHR_BANK_BANK_TO_LOAD
-    LDA #$00
-    STA CHR_BANK_TARGET_BANK
-    JSL load_chr_table_to_vm
+    STZ CHR_BANK_TARGET_BANK
+    jsl dma_sprite_to_slot
 
+    LDA #SPRITE_INDEX_MISC
+    STA CHR_BANK_BANK_TO_LOAD
     LDA #$01
+    STA CHR_BANK_TARGET_BANK
+    jsl dma_sprite_to_slot
+
+
+    LDA #SPRITE_INDEX_ROPER_B
+    STA CHR_BANK_BANK_TO_LOAD
+    LDA #$02
+    STA CHR_BANK_TARGET_BANK
+    jsl dma_sprite_to_slot
+
+    LDA #SPRITE_INDEX_LINDA
+    STA CHR_BANK_BANK_TO_LOAD
+    LDA #$03
+    STA CHR_BANK_TARGET_BANK
+    jsl dma_sprite_to_slot
+    
+    LDA #SPRITE_INDEX_WILLIAM
     STA CHR_BANK_BANK_TO_LOAD
     LDA #$04
     STA CHR_BANK_TARGET_BANK
-    JSL load_chr_table_to_vm
+    jsl dma_sprite_to_slot
     
-    LDA #$02
+    LDA #SPRITE_INDEX_RIGHT_HAND
     STA CHR_BANK_BANK_TO_LOAD
     LDA #$05
     STA CHR_BANK_TARGET_BANK
-    JSL load_chr_table_to_vm
+    jsl dma_sprite_to_slot
+    
+    LDA #SPRITE_INDEX_CHIN
+    STA CHR_BANK_BANK_TO_LOAD
+    LDA #$06
+    STA CHR_BANK_TARGET_BANK
+    jsl dma_sprite_to_slot
+    
+    LDA #SPRITE_INDEX_ABOBO
+    STA CHR_BANK_BANK_TO_LOAD
+    LDA #$07
+    STA CHR_BANK_TARGET_BANK
+    jsl dma_sprite_to_slot
+
+    LDA #SPRITE_INDEX_ABORE
+    STA CHR_BANK_BANK_TO_LOAD
+    LDA #$08
+    STA CHR_BANK_TARGET_BANK
+    jsl dma_sprite_to_slot
+
+    LDA #SPRITE_INDEX_BURNOV
+    STA CHR_BANK_BANK_TO_LOAD
+    LDA #$09
+    STA CHR_BANK_TARGET_BANK
+    jsl dma_sprite_to_slot
+
 
     rts

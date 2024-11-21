@@ -102,11 +102,6 @@ initialize_registers:
   STZ HDMAEN 
   STZ MEMSEL 
 
-  STZ STORED_OFFSETS_SET
-  STZ UNPAUSE_BG1_VOFS_LB
-  STZ UNPAUSE_BG1_VOFS_HB
-  STZ UNPAUSE_BG1_HOFS_LB
-  STZ UNPAUSE_BG1_HOFS_HB
   STZ EXTRA_VRAM_UPDATE
   STZ LEVEL_SELECT_INDEX
   
@@ -175,7 +170,7 @@ initialize_registers:
   STA SETINI
 
 
-  lda #%0000000
+  lda #%0000010
   sta OBSEL
 
   STZ ATTR_NES_HAS_VALUES
@@ -218,7 +213,7 @@ intro_done:
   LDA #$A1
   PHA
   PLB 
-  JML $A1C000
+  JML $A7FF75
 
 
   snes_nmi:
@@ -331,7 +326,7 @@ clearvm_to_12:
 : LDA RDNMI
   BPL :-
 
-  LDA #$01
+  LDA #$00
   STA NMITIMEN
   jslb force_blank_no_store, $a0 
   setAXY16

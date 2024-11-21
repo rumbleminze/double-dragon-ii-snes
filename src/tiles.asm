@@ -345,6 +345,183 @@ load_chr_table_to_vm:
 
   RTL
 
+
+; sprite tile location table
+sprite_location_table:
+.byte <player_sprite_tiles,           >player_sprite_tiles,           ^player_sprite_tiles 
+.byte <roper_bolo_sprites,            >roper_bolo_sprites,            ^roper_bolo_sprites 
+.byte <linda_sprites,                 >linda_sprites,                 ^linda_sprites
+.byte <abobo_sprites,                 >abobo_sprites,                 ^abobo_sprites
+.byte <burnov_sprites_1,              >burnov_sprites_1,              ^burnov_sprites_1
+.byte <shadow_sprites,                >shadow_sprites,                ^shadow_sprites
+.byte <chin_sprites,                  >chin_sprites,                  ^chin_sprites
+.byte <william_sprites,               >william_sprites,               ^william_sprites
+
+.byte <burnov_sprites_2,              >burnov_sprites_2,              ^burnov_sprites_2 
+.byte <abore_sprites,                 >abore_sprites,                 ^abore_sprites 
+.byte <right_hand_sprites,            >right_hand_sprites,            ^right_hand_sprites 
+.byte <ninja_sprites,                 >ninja_sprites,                 ^ninja_sprites 
+.byte <mysterious_warrior_sprites,    >mysterious_warrior_sprites,    ^mysterious_warrior_sprites 
+.byte <misc_sprites,                  >misc_sprites,                  ^misc_sprites 
+
+.byte <mysterious_warrior_sprites_2,  >mysterious_warrior_sprites_2,  ^mysterious_warrior_sprites_2 
+.byte <burnov_sprites_3,              >burnov_sprites_3,              ^burnov_sprites_3 
+.byte <roper_grenade_sprites,         >roper_grenade_sprites,         ^roper_grenade_sprites 
+
+; sprite constants
+SPRITE_INDEX_PLAYER = 0
+SPRITE_INDEX_ROPER_B = 1
+SPRITE_INDEX_LINDA = 2
+SPRITE_INDEX_ABOBO = 3
+SPRITE_INDEX_BURNOV = 4
+SPRITE_INDEX_SHADOW = 5
+SPRITE_INDEX_CHIN = 6
+SPRITE_INDEX_WILLIAM = 7
+
+SPRITE_INDEX_BURNOV2 = 8
+SPRITE_INDEX_ABORE = 9
+SPRITE_INDEX_RIGHT_HAND = 10
+SPRITE_INDEX_NINJA = 11
+SPRITE_INDEX_MYST_WARR = 12
+SPRITE_INDEX_MISC = 13
+
+SPRITE_INDEX_MYST_WARR2 = 14
+SPRITE_INDEX_BURNOV3 = 15
+SPRITE_INDEX_ROPER_G = 16
+
+target_sprite_bank_table:
+.byte $40, $48, $50, $58, $60, $68, $70, $78, $00, $08
+
+; DMA's 2k (0x800) bytes from ROM to VM slot
+; the VM slots we use are for sprites, and are from 0x4000 - 0x7FFF
+; slot 0 = 0x4000
+; slot 1 = 0x4800
+; slot 2 = 0x5000
+; slot 3 = 0x5800
+; slot 4 = 0x6000
+; slot 5 = 0x6800
+; slot 6 = 0x7000
+; slot 7 = 0x7800
+dma_sprite_to_slot:
+  PHB
+  PHA
+  PHY
+  PHX
+  PHK
+  PLB
+
+  ; holds the sprite we need to load tiles for
+  LDA CHR_BANK_BANK_TO_LOAD
+  ASL
+  CLC
+  ADC CHR_BANK_BANK_TO_LOAD
+  TAY
+  
+  LDA #$80
+  STA VMAIN
+
+  LDA #$01
+  STA DMAP1
+
+  LDA #$18
+  STA BBAD1
+
+  ; source LB
+  LDA sprite_location_table, Y
+  STA A1T1L
+
+  ; source HB
+  INY
+  LDA sprite_location_table, y
+  STA A1T1H
+
+  ; source DB
+  INY
+  LDA sprite_location_table, y
+  STA A1B1
+
+  ; 0x1000 bytes
+  LDA #$10
+  STA DAS1H
+  STZ DAS1L
+
+  LDA CHR_BANK_TARGET_BANK
+  TAY
+
+  ; save which enemy we've loaded to this slot
+  LDA CHR_BANK_BANK_TO_LOAD
+  STA SPRITE_LOADED_TABLE, Y
+
+  lda target_sprite_bank_table, Y  
+  STA VMADDH
+  STZ VMADDL
+
+  LDA #$02
+  STA MDMAEN
+
+  PLX
+  PLY
+  PLA
+  PLB
+  LDA VMAIN_STATE
+  STA VMAIN
+  rtl
+
+sprite_bank_to_table_offset:
+.byte $02, $02, $02, $02, $0A, $0A, $12, $12, $1A, $1A 
+
+load_enemy_sprites:
+  CMP CURRENT_ENEMY_LOADED
+  BNE :+
+  rtl
+: STA ENEMY_TO_LOAD
+  STA CURRENT_ENEMY_LOADED
+
+  ; check if we already have it
+  LDY #$00
+: LDA SPRITE_LOADED_TABLE, Y
+  CMP ENEMY_TO_LOAD
+  beq found_enemy
+  INY
+  CPY #$0A
+  bne :-
+
+  ; not found, load to last bank for now
+  DEY
+  STY CHR_BANK_TARGET_BANK
+  LDA ENEMY_TO_LOAD
+  STA CHR_BANK_BANK_TO_LOAD
+  jslb dma_sprite_to_slot, $a0
+  LDY #$09
+  
+found_enemy:
+  ; y contains the bank the enemey is in
+  STY CURRENT_ENEMY_SLOT
+  TYA
+
+  AND #$01
+  beq :+
+  LDA #$80
+: STA CURRENT_ENEMY_TILE_OFFSET
+
+  ; set nametable to 1 for everything but the 1st page
+  STZ CURRENT_SPRITE_TABLE_OFFSET
+  LDA CURRENT_ENEMY_SLOT
+  LSR
+  BNE :+
+  ; this is on the first page, we don't need to both updating the OBSEL
+  rtl
+: LDA #$01
+  STA CURRENT_SPRITE_TABLE_OFFSET
+
+  LDA CURRENT_ENEMY_SLOT
+  TAY
+  lda sprite_bank_to_table_offset, Y
+  STA OBSEL
+
+  rtl
+  
+
 dma_chr_to_vm:
   PHB
   LDA #$A0

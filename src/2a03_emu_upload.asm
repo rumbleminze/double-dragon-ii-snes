@@ -9,7 +9,7 @@ upload_sound_emulator_to_spc:
   
   LDA #$8F
   STA INIDISP     ; Turn screen off
-  LDA #$01
+  LDA #$00
   STA NMITIMEN    ; disable interrupts
 
   setXY16
