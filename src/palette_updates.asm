@@ -1,4 +1,13 @@
 
+check_for_palette_updates:
+  PHA
+  LDA PALETTE_UPDATE_START - 1
+  BNE :+
+  PLA
+  rtl
+: pla
+  stz PALETTE_UPDATE_START - 1
+
 write_palette_data:
   PHX
   PHY
@@ -91,6 +100,10 @@ skip_writing_four_empties:
   ; done after $20
   RTL
   
+zero_all_palette_long:
+  jsr zero_all_palette
+  rtl
+
 zero_all_palette:
   LDY #$00
   LDX #$02

@@ -36,23 +36,33 @@ import (
 //  0000 - 0FFFF - BG Tiles, always loaded in 4KB banks
 // 10000 - 107FF - Player Sprite Tiles, always loaded in the first bank of sprites
 // 10800 - Roper
+//
 // 11000 - Linda
 // 11800 - Abobo
+
 // 12000 - Burnov dying
 // 12800 - Shadow you
+
 // 13000 - Chin
 // 13800 - William
+
 // 14000 - Burnov fighting
 // 14800 - Abore
+
 // 15000 - Right Arm
 // 15800 - Ninja
+
 // 16000 - Mysterious warrior
 // 16800 - between fight sprites
+
 // 17000 - more BG tiles, for title screen
+
 // 18000 - more mysterious warrior tiles
 // 18800 - more Burnov tiles
+
 // 19000 - more Roper tiles (Roper w/Dynamite?)
 // 19800 - 1CFFF - cutscene tiles
+
 // 1D000 - end - Data
 
 func main() {

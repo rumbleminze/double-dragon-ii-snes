@@ -1,13 +1,13 @@
 ; sets up a black window on the left column of the screen
 setup_hide_left_8_pixel_window:
-    LDA #$01
+    LDA #$11
     STA TMW
 
     ; Window 1 Left
     LDA #$00
     STA WH0
 
-    LDA #$10
+    LDA #$08
     STA WH1
 
     LDA #%10101010
@@ -24,12 +24,12 @@ setup_hide_left_8_pixel_window:
     rts
 
 enable_hide_left_8_pixel_window:
-    LDA #%00000010
-    STA W12SEL
+    LDA #$11
+    STA TMW
 
     RTL
 
 disable_hide_left_8_pixel_window:
     LDA #$00
-    STA W12SEL
+    STA TMW
     RTL

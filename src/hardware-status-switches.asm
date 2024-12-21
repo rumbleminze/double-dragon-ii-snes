@@ -220,20 +220,21 @@ update_ppu_control_from_a:
     bra ret_from_update_ppu_control_from_a
  
  hvoffset10:  
-    ; INC VOFS_HB
+    INC VOFS_HB
     bra ret_from_update_ppu_control_from_a
  
  hvoffset11:  
     INC HOFS_HB
-    ; INC VOFS_HB
+    INC VOFS_HB
     
 
 ret_from_update_ppu_control_from_a:
     ; LDA INIDISP_STATE
     ; STA INIDISP
-    LDA $F1
-    AND #$01
-    STA HOFS_HB
+    ; LDA $F1
+    ; AND #$01
+    ; LDA #$01
+    ; STA HOFS_HB
     
     pla
     RTL
@@ -288,34 +289,34 @@ set_ppu_mask_to_stored_value:
 :   jslb force_blank_and_store, $a0
     RTL
 
-set_ppu_mask_to_accumulator_and_store:
+; set_ppu_mask_to_accumulator_and_store:
 
-    sta PPU_MASK_STATE
-    CMP #$00
-    BNE set_ppu_mask_to_accumulator
-    STZ TM_STATE
-    BRA set_ppu_mask_to_00
+;     sta PPU_MASK_STATE
+;     CMP #$00
+;     BNE set_ppu_mask_to_accumulator
+;     STZ TM_STATE
+;     BRA set_ppu_mask_to_00
 
-set_ppu_mask_to_accumulator:
-    PHA
-    AND #$18
-    CMP #$18
-    BNE :+
-        LDA #$11
-        BRA :++++
-:   CMP #$10
-    BNE :+
-        LDA #$10
-        BRA :+++
-:   CMP #$08
-    BNE :+
-        LDA #$01
-        BRA :++
-:   LDA #$00    
-:    
-    STA TM
-    PLA
-    RTL
+; set_ppu_mask_to_accumulator:
+;     PHA
+;     AND #$18
+;     CMP #$18
+;     BNE :+
+;         LDA #$11
+;         BRA :++++
+; :   CMP #$10
+;     BNE :+
+;         LDA #$10
+;         BRA :+++
+; :   CMP #$08
+;     BNE :+
+;         LDA #$01
+;         BRA :++
+; :   LDA #$00    
+; :    
+;     STA TM
+;     PLA
+;     RTL
     
 
 update_vh_write_by_0b:
@@ -331,6 +332,7 @@ update_vh_write_by_0b:
 
 update_ppu_mask_store_to_1e:
     LDA #$1E
+update_ppu_mask_and_store:
     STA PPU_MASK_STATE
     ; turns on BG and sprites
     jslb update_values_for_ppu_mask, $a0
@@ -388,6 +390,7 @@ enable_nmi_and_store:
     STA INIDISP
     STA INIDISP_STATE
     :
+    LDA PPU_CONTROL_STATE
     RTL
 
 enable_nmi:
@@ -530,6 +533,9 @@ vmaddh_range:
 .byte $20, $21, $22, $23, $20, $21, $22, $23, $24, $25, $26, $27, $24, $25, $26, $27
 
 convert_a_to_vmaddh_range:
+  CMP #$2f
+  BPL store
+
   PHA
   LDA BANK_SWITCH_CTRL_REGS
   AND #$01

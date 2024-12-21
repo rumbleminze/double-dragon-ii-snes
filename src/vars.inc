@@ -2,17 +2,29 @@
 .define DEBUG_MOD 1
 .define ENABLE_MSU 0
 
+; constants
+LINE_TO_START_HUD = 183
+
 ; These values are almost always used by NES game, but the values will be different
 ; for each game.  They will almost always be in the zero page, or close to it.
-VOFS_LB             = $FC   ; BG V Scroll position
-HOFS_LB             = $FD   ; BG H Scroll position
+VOFS_LB             = $E6   ; BG V Scroll position
+HOFS_LB             = $E7   ; BG H Scroll position
 
-PPU_CONTROL_STATE   = $FF   ; Current state of the PPU Control register
-PPU_MASK_STATE      = $FE   ; Current state of the PPU Mask register
-ACTIVE_NES_BANK     = $F0   ; Current bank loaded into the 8000-BFFF bank (for UNROM and MMC1)
+PPU_CONTROL_STATE   = $E9 ;updated  ; Current state of the PPU Control register
+PPU_MASK_STATE      = $E8 ;updated  ; Current state of the PPU Mask register
+ACTIVE_NES_BANK     = $08AE   ; Current bank loaded into the 8000-BFFF bank (for UNROM and MMC1)
 
 CURRENT_SPRITE_BANK = $D5
 CURRENT_BG_BANK     = $D6
+
+; NES RAM MAP Values
+P1_HEALTH = $041E
+ENEMY_1_HEALTH = $0420
+ENEMY_2_HEALTH = $0421
+CURR_AREA = $0422
+DIFFICULTY = $0435  ; 00 - 02
+; max level per difficulty
+; A794E4 - A794E6
 
 ; SNES Register Value storage
 ; since SNES Registers don't line up with NES registers 1:1
@@ -24,12 +36,18 @@ CURRENT_BG_BANK     = $D6
 
 ; NES stores only the lb for h/v offset
 ; for SNES we also need to store the HB
-HOFS_HB             = $08A4
-VOFS_HB             = $08A5
+curr_hoff_low           = $08A0
+HOFS_HB                 = $08A1
+curr_voff_low           = $08A2
+VOFS_HB                 = $08A3
+lines_left_to_handle    = $08A4
+current_voff_offset     = $08A5
 
-PALETTE_UPDATE_START = $0300
+PALETTE_UPDATE_START = $0840
 PALETTE_ENTRY_CNT   = $08A6
 PALETTE_OFFSET      = $08A7
+
+
 
 REUSABLE_CALC_BYTE  = $08A8
 LEVEL_SELECT_INDEX  = $08A9
@@ -37,6 +55,7 @@ CHEATS_ENABLED      = $08AA
 APU_INITIALIZED     = $08AB
 NEED_TO_CLEAR_8x16_SPRITES = $08AC
 BANK_SWITCH_CTRL_REGS      = $08AD
+SCANLINE_FOR_IRQ             = $08AF
 CURRENT_ATTRIBUTES  = $08B0
 
 SPRITE_LOOP_JUNK    = $A0
@@ -50,13 +69,6 @@ STACK_ADJUSTMENT_ROUTINE_START = $0800
 STACK_ADJUSTMENT_RETURN_LO     = $90
 STACK_ADJUSTMENT_RETURN_HI     = $FE
 
-
-QOL_GUN_DECREASE_TIMER = $0840
-PALETTE_OPTION      = $084B
-MSU_SELECTED        = $084C
-QOL_SETTINGS        = $084D
-SAVE_ENABLED        = $084E
-HOVER_TICK          = $084F
 
 PPU_CURR_VRAM_ADDR  = $0992
 PPU_TILE_COUNT      = $0994
@@ -84,7 +96,14 @@ RESET_VECTOR_BS_DB = $096C
 
 ; HDMA for Scrolling, needs ~0x20 bytes
 SCROLL_HDMA_START      = $0900
-HDMA_LINE_CNT          = $0969
+; HDMA for scrolling normally handled by IRQ
+IRQ_SCROLL_HDMA_START  = $08E0
+SCROLL_HDMA_LINE_TO_START_OFFSET = $08E1
+SCROLL_HDMA_LINES_HANDLED = $08E2
+SCROLL_HDMA_NEXT_TO_HANDLE = $08E3  ; 0 = handle Attr next, 1 = handle irq next
+
+
+LINES_COMPLETE          = $0969
 
 ; CHR_BANK_WORK
 CHR_BANK_LOADED_TABLE   = $0920
@@ -104,6 +123,7 @@ CHR_BANK_READ_LB        = $089A
 CHR_BANK_READ_HB        = $089B
 CHR_BANK_READ_DB        = $089C
 CURRENT_LVL_OBJ_LOAD= $089D
+CHR_BANK_SEGMENT_LOAD  = $089E
 
 FULL_ATTRIBUTE_QUARTER_COUNTER = $0930
 FAQ_OFFSET = $0931
@@ -114,10 +134,12 @@ ATTR_PARTIAL_CURR_OFFSET = $0934
 ; 940 -947 - which enemy is on which sprite table
 SPRITE_LOADED_TABLE = $0940
 CURRENT_ENEMY_LOADED  = $094A
+
 CURRENT_ENEMY_TILE_OFFSET = $094B ; either $80 or $00, controls the HB of the tile
 CURRENT_SPRITE_TABLE_OFFSET = $094C ; either $00 or $01, $00 if we're the first table, $01 if we're the 2nd
 ENEMY_TO_LOAD = $094D
 CURRENT_ENEMY_SLOT = $094E
+ACTIVE_SPRITE_SECOND_BANK_SLOT = $094F
 
 
 .define TILE_CHUNK_COUNT   $0950
@@ -155,12 +177,6 @@ HUD_HOFFS_HDMA_TABLE       = $0F00
 DMA_ENABLED_STATE    = $0EFF
 HDMA_ENABLED_STATE    = $0EFE
 
-ATTR2_NES_HAS_VALUES    = $12A0
-ATTR2_NES_VM_ADDR_HB    = $12A1
-ATTR2_NES_VM_ADDR_LB    = $12A2
-ATTR2_NES_VM_COUNT      = $12A3
-ATTR2_NES_VM_ATTR_START = $12A4
-
 SNES_OAM_TRANSLATE_NEEDED = $12F0
 SNES_OAM_START       = $1000
 
@@ -185,7 +201,7 @@ ATTR2_DMA_SIZE_LB    = $17C6
 ATTR2_DMA_SIZE_HB    = $17C8
 ATTR2_DMA_VMADDH     = $17CA
 ATTR2_DMA_VMADDL     = $17CC
-ATTRIBUTE2_CACHE     = $1900
+ATTRIBUTE2_CACHE     = $1A00
 
 
 ; this will store 8 values that contain the 8 attributes

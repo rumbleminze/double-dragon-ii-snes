@@ -13,7 +13,15 @@
 .byte $2C, $20, $AD, $C8, $A0, $05, $B1, $29, $8D, $9C, $04, $C8, $B1, $29, $8D, $9D
 .byte $04, $C8, $B1, $29, $8D, $9E, $04, $C8, $B1, $29, $8D, $9F, $04, $20, $B4, $FE
 .byte $A0, $02, $B1, $29, $C8, $11, $29, $D0, $08, $A5, $13, $20, $20, $CD, $4C, $1A
-.byte $C1, $A9, $00, $8D, $01, $20, $AD, $D0, $00, $8D, $D8, $00, $85, $29, $AD, $D1
+.byte $C1
+
+    jslb set_ppu_mask_to_00, $a0
+    nop
+;   LDA #$00
+;   STA PpuMask_2001
+
+
+.byte $AD, $D0, $00, $8D, $D8, $00, $85, $29, $AD, $D1
 .byte $00, $85, $2A, $18, $69, $01, $8D, $D1, $00, $8D, $D9, $00, $AD, $D2, $00, $8D
 .byte $DA, $00, $AD, $D3, $00, $8D, $DB, $00, $A5, $29, $48, $A5, $2A, $48, $20, $4E
 .byte $C1, $AD, $D0, $00, $38, $E9, $01, $8D, $D0, $00, $AD, $D1, $00, $E9, $00, $8D
@@ -123,33 +131,185 @@
 .byte $20, $00, $E0, $C0, $A0, $80, $60, $40, $20, $00, $E0, $C0, $A0, $80, $60, $40
 .byte $20, $00, $A0, $80, $60, $40, $20, $00, $E0, $C0, $A0, $80, $60, $40, $20, $00
 .byte $E0, $C0, $A0, $80, $60, $40, $20, $00, $E0, $C0, $A0, $80, $60, $40, $20, $00
-.byte $A5, $19, $48, $A5, $1A, $48, $A5, $1B, $48, $A5, $1C, $48, $A9, $78, $85, $1B
-.byte $AE, $BB, $05, $EC, $BC, $05, $F0, $4C, $AD, $02, $20, $BD, $B1, $04, $8D, $06
-.byte $20, $E8, $29, $F0, $C9, $20, $F0, $04, $C9, $30, $D0, $1B, $BD, $B1, $04, $8D
-.byte $06, $20, $E8, $A5, $E9, $29, $FB, $1D, $B1, $04, $E8, $85, $E9, $8D, $00, $20
-.byte $BD, $B1, $04, $C9, $21, $90, $01, $80, $A8, $B9, $08, $C8, $85, $19, $B9, $E7
+
+@video_ram_update_routine:
+  LDA $19
+  PHA
+  LDA $1A
+  PHA
+  LDA $1B
+  PHA
+  LDA $1C
+  PHA
+  LDA #$78
+  STA $1B
+@vram_done_check:
+  LDX $05BB
+  CPX $05BC
+  BEQ @done_vram_routine
+
+  LDA RDNMI ; PpuStatus_2002
+  jmp @check_for_attributes ; LDA $04B1,X
+@check_for_attributes_return:  
+  jsr @store_vm_add_h_to_range ; STA VMADDH ; PpuAddr_2006
+  INX
+  AND #$F0
+  CMP #$20
+  BEQ :+
+  CMP #$30
+  BNE :++
+: LDA $04B1,X
+  STA VMADDL ; PpuAddr_2006
+  INX
+  LDA $E9
+  AND #$FB
+  ORA $04B1,X
+  INX
+
+  jslb update_ppu_control_from_a_and_store, $a0
+  nops 1
+;   STA $E9
+;   STA PpuControl_2000
+
+  LDA $04B1,X
+  CMP #$21
+  BCC :++
+: .byte $80 
+:
+; c6b0
+.byte $A8, $B9, $08, $C8, $85, $19, $B9, $E7
 .byte $C7, $85, $1A, $BD, $B1, $04, $18, $69, $0E, $85, $1C, $A5, $1B, $38, $E5, $1C
-.byte $85, $1B, $B0, $0D, $68, $85, $1C, $68, $85, $1B, $68, $85, $1A, $68, $85, $19
-.byte $60, $E8, $6C, $19, $00, $BD, $B1, $04, $8D, $07, $20, $E8, $BD, $B1, $04, $8D
-.byte $07, $20, $E8, $BD, $B1, $04, $8D, $07, $20, $E8, $BD, $B1, $04, $8D, $07, $20
+.byte $85, $1B, $B0, $0D
+
+@done_vram_routine:
+  PLA
+  STA $1C
+  PLA
+  STA $1B
+  PLA
+  STA $1A
+  PLA
+  STA $19
+  RTS
 
 
-; C700 - bank 7
-.byte $E8, $BD, $B1, $04, $8D, $07, $20, $E8, $BD, $B1, $04, $8D, $07, $20, $E8, $BD
-.byte $B1, $04, $8D, $07, $20, $E8, $BD, $B1, $04, $8D, $07, $20, $E8, $BD, $B1, $04
-.byte $8D, $07, $20, $E8, $BD, $B1, $04, $8D, $07, $20, $E8, $BD, $B1, $04, $8D, $07
-.byte $20, $E8, $BD, $B1, $04, $8D, $07, $20, $E8, $BD, $B1, $04, $8D, $07, $20, $E8
-.byte $BD, $B1, $04, $8D, $07, $20, $E8, $BD, $B1, $04, $8D, $07, $20, $E8, $BD, $B1
-.byte $04, $8D, $07, $20, $E8, $BD, $B1, $04, $8D, $07, $20, $E8, $BD, $B1, $04, $8D
-.byte $07, $20, $E8, $BD, $B1, $04, $8D, $07, $20, $E8, $BD, $B1, $04, $8D, $07, $20
-.byte $E8, $BD, $B1, $04, $8D, $07, $20, $E8, $BD, $B1, $04, $8D, $07, $20, $E8, $BD
-.byte $B1, $04, $8D, $07, $20, $E8, $BD, $B1, $04, $8D, $07, $20, $E8, $BD, $B1, $04
-.byte $8D, $07, $20, $E8, $BD, $B1, $04, $8D, $07, $20, $E8, $BD, $B1, $04, $8D, $07
-.byte $20, $E8, $BD, $B1, $04, $8D, $07, $20, $E8, $BD, $B1, $04, $8D, $07, $20, $E8
-.byte $BD, $B1, $04, $8D, $07, $20, $E8, $BD, $B1, $04, $8D, $07, $20, $E8, $BD, $B1
-.byte $04, $8D, $07, $20, $E8, $8A, $48, $AE, $BB, $05, $A9, $3F, $DD, $B1, $04, $D0
-.byte $0E, $8D, $06, $20, $A9, $00, $8D, $06, $20, $8D, $06, $20, $8D, $06, $20, $68
-.byte $AA, $8E, $BB, $05, $4C, $83, $C6, $00, $C7, $C7, $C7, $C7, $C7, $C7, $C7, $C7
+; bigass unrolled loop
+  INX
+  JMP ($0019)
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  LDA $04B1,X
+  STA VMDATAL ; PpuData_2007
+  INX
+  TXA
+  PHA
+  LDX $05BB
+  LDA #$3F
+  CMP $04B1,X
+  BNE :+
+  jsr @store_vm_add_h_to_range ; STA VMADDH ; PpuAddr_2006
+  LDA #$00
+  STA VMADDL ; PpuAddr_2006
+  jsr @store_vm_add_h_to_range ; STA VMADDH ; PpuAddr_2006
+  STA VMADDL ; PpuAddr_2006
+: PLA
+  TAX
+  STX $05BB
+  JMP $C683
+
+; C7E7 - bank 7
+.byte $00, $C7, $C7, $C7, $C7, $C7, $C7, $C7, $C7
 .byte $C7, $C7, $C7, $C7, $C7, $C7, $C7, $C7, $C7, $C7, $C7, $C7, $C7, $C7, $C7, $C7
 
 
@@ -251,8 +411,26 @@
 ; CD00 - bank 7
 .byte $37, $78, $E4, $13, $00, $00, $1D, $34, $35, $36, $37, $78, $D3, $1D, $00, $00
 .byte $2C, $30, $31, $32, $33, $74, $D8, $1E, $00, $00, $31, $5C, $5D, $5E, $5F, $74
-.byte $85, $19, $AD, $FF, $BF, $48, $20, $C0, $FC, $20, $A8, $FE, $A5, $E9, $29, $FB
-.byte $85, $E9, $8D, $00, $20, $A9, $00, $8D, $01, $20, $A5, $19, $20, $97, $C9, $A0
+
+; cd20
+  STA $19
+  LDA $BFFF
+  PHA
+  JSR $FCC0
+  JSR $FEA8
+  LDA $E9
+  AND #$FB
+  jslb update_ppu_control_from_a_and_store, $a0
+;   nops 1
+;   STA $E9
+;   STA PpuControl_2000
+  LDA #$00
+  jslb update_ppu_mask_and_store, $a0
+;   nops 1
+;   LDA #$00
+;   STA PpuMask_2001
+
+.byte $A5, $19, $20, $97, $C9, $A0
 .byte $09, $B1, $29, $C9, $06, $90, $1F, $AA, $AD, $98, $04, $48, $8E, $98, $04, $E8
 .byte $E8, $AD, $99, $04, $48, $8E, $99, $04, $20, $ED, $FE, $68, $8D, $99, $04, $68
 .byte $8D, $98, $04, $4C, $69, $CD, $20, $1D, $FF, $A0, $04, $B1, $29, $8D, $8F, $04
@@ -278,18 +456,52 @@
 .byte $9D, $CE, $4C, $C6, $CD, $A5, $1A, $29, $3F, $85, $1C, $20, $AF, $CE, $85, $1B
 .byte $A5, $19, $85, $1D, $A5, $1D, $85, $19, $A6, $1C, $20, $AF, $CE, $20, $E0, $CE
 .byte $CA, $D0, $F7, $C6, $1B, $D0, $ED, $20, $9D, $CE, $4C, $C6, $CD, $A5, $29, $18
-.byte $65, $19, $85, $29, $A9, $00, $65, $2A, $85, $2A, $A9, $00, $85, $19, $60, $A5
-.byte $2A, $C9, $80, $B0, $22, $A5, $19, $18, $65, $29, $85, $2D, $A5, $2A, $69, $00
-.byte $85, $2E, $A5, $2E, $8D, $06, $20, $A5, $2D, $8D, $06, $20, $AD, $07, $20, $AD
-.byte $07, $20, $85, $1A, $E6, $19, $60, $A4, $19, $B1, $29, $85, $1A, $E6, $19, $60
+.byte $65, $19, $85, $29, $A9, $00, $65, $2A, $85, $2A, $A9, $00, $85, $19, $60
+
+  LDA $2A
+  CMP #$80
+  BCS @ced7
+  LDA $19
+  CLC
+  ADC $29
+  STA $2D
+  LDA $2A
+;   ADC #$00
+  ADC #$30 ; we use $4000 for the first sprites, instead of $1000
+  STA $2E
+  LDA $2E
+  STA VMADDH ; PpuAddr_2006
+  LDA $2D
+  STA VMADDL ; PpuAddr_2006
+  LDA VMDATALREAD ; PpuData_2007
+  LDA VMDATALREAD ; PpuData_2007
+  STA $1A
+  INC $19
+  RTS
+
+@ced7:
+  LDY $19
+  LDA ($29),Y
+  STA $1A
+  INC $19
+  RTS
+
 .byte $A5, $2C, $29, $03, $C9, $03, $D0, $2C, $A5, $2B, $C9, $C0, $90, $26, $A5, $19
 .byte $48, $98, $48, $A5, $2B, $38, $E9, $C0, $85, $19, $A5, $2C, $C9, $23, $F0, $07
 
 
 ; CF00 - bank 7
 .byte $18, $A9, $40, $65, $19, $85, $19, $A5, $19, $A8, $A5, $1A, $99, $BD, $05, $68
-.byte $A8, $68, $85, $19, $A5, $2C, $8D, $06, $20, $A5, $2B, $8D, $06, $20, $A5, $1A
-.byte $8D, $07, $20, $18, $A5, $2B, $69, $01, $85, $2B, $A5, $2C, $69, $00, $85, $2C
+.byte $A8, $68, $85, $19
+
+  LDA $2C
+  jsr @store_vm_add_h_to_range ; STA VMADDH ; PpuAddr_2006
+  LDA $2B
+  STA VMADDL ; PpuAddr_2006
+  LDA $1A
+  STA VMDATAL ; PpuData_2007
+
+.byte $18, $A5, $2B, $69, $01, $85, $2B, $A5, $2C, $69, $00, $85, $2C
 .byte $60, $A9, $00, $8D, $44, $06, $A9, $04, $8D, $45, $06, $60, $AD, $D0, $00, $48
 .byte $AD, $D1, $00, $48, $AD, $D8, $00, $48, $AD, $D9, $00, $48, $AD, $44, $06, $8D
 .byte $D8, $00, $AD, $45, $06, $8D, $D9, $00, $AD, $F5, $00, $8D, $D0, $00, $A9, $04
@@ -316,19 +528,90 @@
 .byte $06, $AD, $5F, $06, $29, $7F, $85, $19, $0A, $18, $65, $19, $6D, $5E, $06, $A8
 .byte $B9, $92, $D0, $8D, $8F, $04, $EE, $5E, $06, $AD, $5F, $06, $10, $06, $CE, $5E
 .byte $06, $CE, $5E, $06, $60, $05, $12, $13, $15, $14, $0D, $04, $16, $17, $02, $63
-.byte $A5, $F1, $C9, $01, $F0, $01, $60, $A5, $19, $48, $A5, $1A, $48, $A0, $00, $84
-.byte $19, $A9, $FF, $85, $1A, $A2, $06, $B5, $3C, $10, $15, $C8, $B5, $4A, $29, $20
-.byte $D0, $0E, $B5, $92, $C5, $19, $90, $02, $85, $19, $C5, $1A, $B0, $02, $85, $1A
-.byte $CA, $10, $E4, $C0, $03, $90, $5B, $A5, $19, $38, $E5, $1A, $90, $54, $C9, $0A
-.byte $B0, $50, $A9, $20, $85, $19, $A2, $00, $A0, $FC, $B9, $00, $02, $48, $BD, $00
-.byte $02, $99, $00, $02, $68, $9D, $00, $02, $C8, $E8, $B9, $00, $02, $48, $BD, $00
+.byte $A5, $F1, $C9, $01, $F0, $01, $60
 
 
-; D100 - bank 7
-.byte $02, $99, $00, $02, $68, $9D, $00, $02, $E8, $C8, $B9, $00, $02, $48, $BD, $00
-.byte $02, $99, $00, $02, $68, $9D, $00, $02, $E8, $C8, $B9, $00, $02, $48, $BD, $00
-.byte $02, $99, $00, $02, $68, $9D, $00, $02, $E8, $98, $38, $E9, $07, $A8, $C6, $19
-.byte $D0, $B8, $68, $85, $1A, $68, $85, $19, $60, $F7, $1B, $00, $4B, $E3, $D7, $D0
+; d0a7 shuffle sprites - we don't need to do this, so we just always skip it
+  rts
+  nops 1
+  ;LDA $19
+  PHA
+  LDA $1A
+  PHA
+  LDY #$00
+  STY $19
+  LDA #$FF
+  STA $1A
+  LDX #$06
+: LDA $3C,X
+  BPL :++
+  INY
+  LDA $4A,X
+  AND #$20
+  BNE :++
+  LDA $92,X
+  CMP $19
+  BCC :+
+  STA $19
+: CMP $1A
+  BCS :+
+  STA $1A
+: DEX
+  BPL :---
+  CPY #$03
+  BCC @d132
+  LDA $19
+  SEC
+  SBC $1A
+  BCC @d132
+  CMP #$0A
+  BCS @d132
+
+  LDA #$20
+  STA $19
+  LDX #$00
+  LDY #$FC
+: LDA $0200,Y
+  PHA
+  LDA $0200,X
+  STA $0200,Y
+  PLA
+  STA $0200,X
+  INY
+  INX
+  LDA $0200,Y
+  PHA
+  LDA $0200,X
+  STA $0200,Y
+  PLA
+  STA $0200,X
+  INX
+  INY
+  LDA $0200,Y
+  PHA
+  LDA $0200,X
+  STA $0200,Y
+  PLA
+  STA $0200,X
+  INX
+  INY
+  LDA $0200,Y
+  PHA
+  LDA $0200,X
+  STA $0200,Y
+  PLA
+  STA $0200,X
+  INX
+  TYA
+  SEC
+  SBC #$07
+  TAY
+  DEC $19
+  BNE :-
+@d132:
+
+; D132 - bank 7
+.byte $68, $85, $1A, $68, $85, $19, $60, $F7, $1B, $00, $4B, $E3, $D7, $D0
 .byte $A2, $01, $A0, $01, $BD, $3C, $00, $10, $03, $4C, $CF, $D1, $BD, $32, $04, $F0
 .byte $7E, $BD, $CC, $03, $D0, $05, $A9, $00, $99, $CC, $03, $FE, $CC, $03, $BD, $CC
 .byte $03, $C9, $15, $90, $6A, $20, $D9, $D1, $B0, $65, $8A, $48, $20, $FF, $D1, $68
@@ -443,29 +726,161 @@
 .byte $06, $4C, $40, $D7, $AD, $40, $06, $10, $05, $A9, $30, $8D, $40, $06, $AD, $40
 .byte $06, $29, $0F, $D0, $03, $20, $41, $D7, $AD, $40, $06, $38, $E9, $08, $8D, $40
 .byte $06, $B0, $0D, $A9, $FF, $8D, $40, $06, $AD, $3F, $06, $09, $80, $8D, $3F, $06
-.byte $60, $AD, $8F, $04, $8D, $91, $04, $0A, $AA, $BD, $FA, $E2, $85, $29, $BD, $FB
-.byte $E2, $85, $2A, $AE, $BC, $05, $A9, $3F, $9D, $B1, $04, $E8, $A9, $00, $9D, $B1
-.byte $04, $E8, $A9, $00, $9D, $B1, $04, $E8, $A9, $10, $9D, $B1, $04, $E8, $A0, $00
-.byte $AD, $40, $06, $D0, $05, $A9, $0F, $4C, $8C, $D7, $B1, $29, $CD, $40, $06, $90
-.byte $0B, $29, $0F, $85, $19, $AD, $40, $06, $E9, $10, $05, $19, $9D, $B1, $04, $E8
-.byte $C8, $C0, $10, $90, $DB, $8E, $BC, $05, $AD, $3F, $06, $29, $02, $D0, $57, $AD
-.byte $90, $04, $8D, $92, $04, $0A, $AA, $BD, $60, $E3, $85, $29, $BD, $61, $E3, $85
-.byte $2A, $AE, $BC, $05, $A9, $3F, $9D, $B1, $04, $E8, $A9, $10, $9D, $B1, $04, $E8
-.byte $A9, $00, $9D, $B1, $04, $E8, $A9, $10, $9D, $B1, $04, $E8, $A0, $00, $AD, $40
-.byte $06, $D0, $05, $A9, $0F, $4C, $EA, $D7, $B1, $29, $CD, $40, $06, $90, $0B, $29
-.byte $0F, $85, $19, $AD, $40, $06, $E9, $10, $05, $19, $9D, $B1, $04, $E8, $C8, $C0
-.byte $10, $90, $DB, $8E, $BC, $05, $60, $A2, $00, $A9, $00, $95, $00, $E8, $E0, $DD
+.byte $60
+
+; d741 - lots of loading info, we need to hijack some palette updates
+  LDA $048F
+  STA $0491
+  ASL A
+  TAX
+  LDA $E2FA,X
+  STA $29
+  LDA $E2FB,X
+  STA $2A
+  LDX $05BC
+  LDA #$3F
+  STA $04B1,X
+  INX
+  LDA #$00
+  STA $04B1,X
+  INX
+  LDA #$00
+  STA $04B1,X
+  INX
+  LDA #$10
+  STA $04B1,X
+  INX
+  LDY #$00
+: LDA $0640
+  BNE :+
+  LDA #$0F
+  JMP $D78C
+: LDA ($29),Y
+  CMP $0640
+  BCC :+
+  AND #$0F
+  STA $19
+  LDA $0640
+  SBC #$10
+  ORA $19
+: STA PALETTE_UPDATE_START, Y ; $04B1,X
+  INX
+  INY
+  CPY #$10
+  BCC :---
+  STX $05BC
+  LDA $063F
+  AND #$02
+  BNE @palette_2_early_rts
+  LDA $0490
+  STA $0492
+  ASL A
+  TAX
+  LDA $E360,X
+  STA $29
+  LDA $E361,X
+  STA $2A
+  LDX $05BC
+  LDA #$3F
+  STA $04B1,X
+  INX
+  LDA #$10
+  STA $04B1,X
+  INX
+  LDA #$00
+  STA $04B1,X
+  INX
+  LDA #$10
+  STA $04B1,X
+  INX
+  LDY #$00
+: LDA $0640
+  BNE :+ 
+  LDA #$0F
+  JMP $D7EA
+: LDA ($29),Y
+  CMP $0640
+  BCC :+
+  AND #$0F
+  STA $19
+  LDA $0640
+  SBC #$10
+  ORA $19
+: STA PALETTE_UPDATE_START + $10, Y ; $04B1,X
+  INX
+  INY
+  CPY #$10
+  BCC :---
+@palette_2_early_rts:
+  jsr @finish_palette_updates ; STX $05BC
+  RTS
+
+.byte $A2, $00, $A9, $00, $95, $00, $E8, $E0, $DD
 
 
 ; D800 - bank 7
 .byte $90, $F9, $60, $A9, $00, $85, $29, $A9, $03, $85, $2A, $A2, $00, $A9, $00, $81
 .byte $29, $E6, $29, $D0, $02, $E6, $2A, $A5, $2A, $CD, $27, $D8, $D0, $EF, $A5, $29
 .byte $CD, $26, $D8, $D0, $E8, $60, $86, $04, $AE, $A7, $04, $F0, $10, $A9, $F0, $E0
-.byte $04, $F0, $0A, $9D, $00, $02, $CA, $CA, $CA, $CA, $4C, $2F, $D8, $60, $A2, $FC
-.byte $A9, $F0, $9D, $00, $02, $E0, $00, $F0, $07, $CA, $CA, $CA, $CA, $4C, $42, $D8
-.byte $60, $A9, $20, $A0, $00, $A2, $00, $20, $10, $FD, $A9, $24, $20, $10, $FD, $A9
-.byte $28, $20, $10, $FD, $60, $A5, $E8, $09, $02, $D0, $04, $A5, $E8, $29, $F9, $85
-.byte $E8, $8D, $01, $20, $60, $20, $D3, $FC, $20, $51, $D8, $20, $3E, $D8, $20, $52
+.byte $04, $F0, $0A, $9D, $00, $02, $CA, $CA, $CA, $CA, $4C, $2F, $D8, $60
+
+; move all sprites to F0
+
+;   LDX #$FC
+;   LDA #$F0
+;   STA $0200,X
+;   CPX #$00
+;   BEQ :+
+;   DEX
+;   DEX
+;   DEX
+;   DEX
+;   JMP $D842
+; : 
+  jslb move_sprites_offscreen, $a0
+  RTS
+
+
+  nops 14
+
+
+; D851 - zero out VRAM
+; DD2 does this via several calls and loops, but we can just clear it 
+; all via DMA
+jslb clear_bg_jsl, $a0
+RTS
+
+@finish_palette_updates:
+  STX $05BC
+  LDA #$01
+  STA PALETTE_UPDATE_START - 1
+  nops 4 ; jslb check_for_palette_updates, $a0
+  RTS
+
+nops 2
+;   LDA #$20
+;   LDY #$00
+;   LDX #$00
+;   JSR $FD10
+;   LDA #$24
+;   JSR $FD10
+;   LDA #$28
+;   JSR $FD10
+; D865 - handle hiding/showing left 8 most pixels
+  LDA $E8
+  ORA #$02
+  BNE :+
+  LDA $E8
+  AND #$F9
+:
+  jslb update_ppu_mask_and_store, $a0  
+  nops 1
+;   STA $E8
+;   STA PpuMask_2001
+  RTS
+
+
+.byte $20, $D3, $FC, $20, $51, $D8, $20, $3E, $D8, $20, $52
 .byte $FE, $60, $A9, $00, $85, $1C, $A2, $00, $BD, $3C, $00, $30, $01, $E8, $B5, $77
 .byte $85, $29, $B5, $80, $85, $2A, $E0, $00, $D0, $46, $E8, $BD, $3C, $00, $10, $40
 .byte $A5, $29, $38, $F5, $77, $85, $29, $A5, $2A, $F5, $80, $85, $2A, $10, $03, $20
@@ -483,12 +898,58 @@
 .byte $08, $65, $D0, $85, $D0, $A5, $D1, $69, $00, $28, $10, $02, $69, $FF, $85, $D1
 .byte $A5, $D0, $38, $E5, $29, $85, $1B, $A5, $D1, $E5, $2A, $10, $0F, $48, $A5, $1B
 .byte $49, $FF, $18, $69, $01, $85, $1B, $68, $49, $FF, $69, $00, $D0, $0E, $A9, $04
-.byte $C5, $1B, $90, $08, $A5, $29, $85, $D0, $A5, $2A, $85, $D1, $60, $A5, $E9, $29
-.byte $FC, $0D, $63, $06, $85, $E9, $AD, $02, $20, $AD, $62, $06, $8D, $05, $20, $AD
-.byte $61, $06, $8D, $05, $20, $A5, $E9, $8D, $00, $20, $A5, $F4, $C9, $02, $D0, $0A
-.byte $A9, $22, $8D, $06, $20, $A9, $80, $8D, $06, $20, $60, $A5, $E9, $29, $FC, $0D
-.byte $69, $06, $85, $E9, $AD, $02, $20, $AD, $67, $06, $8D, $05, $20, $AD, $68, $06
-.byte $8D, $05, $20, $A5, $E9, $8D, $00, $20, $60, $A5, $3A, $8D, $63, $06, $A5, $E6
+.byte $C5, $1B, $90, $08, $A5, $29, $85, $D0, $A5, $2A, $85, $D1, $60
+
+  LDA $E9
+  AND #$FC
+  ORA $0663
+  STA $E9
+  LDA RDNMI ; PpuStatus_2002
+  
+;   jslb reset_scroll_from_662, $a0
+;   nops 8
+  LDA $0662
+  STA curr_hoff_low ; PpuScroll_2005
+  
+  LDA $0661
+  STA curr_voff_low ; PpuScroll_2005
+  
+  
+  jslb reset_ppu_control_values, $a0
+  nops 1
+;   LDA $E9
+;   STA PpuControl_2000
+
+  LDA $F4
+  CMP #$02
+  BNE :+
+  LDA #$22
+  STA VMADDH ; PpuAddr_2006
+  LDA #$80
+  STA VMADDL ; PpuAddr_2006
+: RTS
+
+;d99b
+  LDA $E9
+  AND #$FC
+  ORA $0669
+  STA $E9
+  LDA RDNMI ; PpuStatus_2002
+
+  LDA $0667
+  STA curr_hoff_low ; PpuScroll_2005
+
+  LDA $0668
+  STA curr_voff_low ; PpuScroll_2005
+
+  jslb reset_ppu_control_values, $a0
+  nops 1
+;   LDA $E9
+;   STA PpuControl_2000
+
+  RTS
+
+.byte $A5, $3A, $8D, $63, $06, $A5, $E6
 .byte $8D, $61, $06, $A5, $E7, $8D, $62, $06, $AD, $F4, $00, $C9, $02, $D0, $12, $AD
 .byte $64, $06, $8D, $67, $06, $AD, $65, $06, $8D, $68, $06, $AD, $66, $06, $8D, $69
 .byte $06, $60, $A9, $00, $85, $D0, $85, $D1, $85, $D2, $85, $D3, $20, $F3, $D9, $20
@@ -649,20 +1110,127 @@
 
 ; E200 - bank 7
 .byte $00, $00, $00, $00, $00, $00, $00, $00, $FF, $FF, $00, $00, $00, $00, $00, $00
-.byte $00, $00, $FF, $FF, $20, $C0, $FC, $20, $A8, $FE, $20, $98, $E7, $AD, $02, $20
-.byte $A9, $3F, $8D, $06, $20, $A9, $00, $8D, $06, $20, $A0, $00, $A9, $0F, $8D, $07
-.byte $20, $C8, $C0, $20, $90, $F8, $A9, $3F, $8D, $06, $20, $A9, $00, $8D, $06, $20
-.byte $8D, $06, $20, $8D, $06, $20, $60, $AD, $8F, $04, $CD, $91, $04, $F0, $47, $A9
-.byte $20, $20, $E6, $E2, $90, $03, $4C, $E5, $E2, $AD, $8F, $04, $8D, $91, $04, $0A
-.byte $AA, $BD, $FA, $E2, $85, $29, $BD, $FB, $E2, $85, $2A, $AE, $BC, $05, $A9, $3F
-.byte $9D, $B1, $04, $E8, $A9, $00, $9D, $B1, $04, $E8, $A9, $00, $9D, $B1, $04, $E8
-.byte $A9, $10, $9D, $B1, $04, $E8, $A0, $00, $B1, $29, $9D, $B1, $04, $E8, $C8, $C0
-.byte $10, $90, $F5, $8E, $BC, $05, $AD, $90, $04, $CD, $92, $04, $F0, $47, $A9, $20
-.byte $20, $E6, $E2, $90, $03, $4C, $E5, $E2, $AD, $90, $04, $8D, $92, $04, $0A, $AA
-.byte $BD, $60, $E3, $85, $29, $BD, $61, $E3, $85, $2A, $AE, $BC, $05, $A9, $3F, $9D
-.byte $B1, $04, $A9, $10, $E8, $9D, $B1, $04, $A9, $00, $E8, $9D, $B1, $04, $E8, $A9
-.byte $10, $9D, $B1, $04, $E8, $A0, $00, $B1, $29, $9D, $B1, $04, $E8, $C8, $C0, $10
-.byte $90, $F5, $8E, $BC, $05, $60, $85, $19, $AD, $BB, $05, $38, $ED, $BC, $05, $F0
+.byte $00, $00, $FF, $FF
+
+  JSR $FCC0
+  JSR $FEA8
+  JSR $E798
+
+  ; palette updates, sets them all to black
+  LDA RDNMI ; PpuStatus_2002
+
+  jslb zero_all_palette_long, $a0
+  rts
+  nops 25
+
+; using some of these for returning from NMI
+@exit_from_nmi:
+  PLA
+  TAY
+  PLA
+  TAX
+  PLA
+;   RTI
+  jml return_from_nes_nmi
+
+
+;   LDA #$3F
+;   STA PpuAddr_2006
+;   LDA #$00
+;   STA PpuAddr_2006
+;   LDY #$00
+;   LDA #$0F
+; : STA PpuData_2007
+;   INY
+;   CPY #$20
+;   BCC :-
+
+;   LDA #$3F
+;   STA PpuAddr_2006
+;   LDA #$00
+;   STA PpuAddr_2006
+;   STA PpuAddr_2006
+;   STA PpuAddr_2006
+
+;   RTS
+
+; e247 - Apperas to be palette update logic
+  LDA $048F
+  CMP $0491
+  BEQ :+++
+  LDA #$20
+  JSR $E2E6
+  BCC :+
+  JMP $E2E5
+: LDA $048F
+  STA $0491
+  ASL A
+  TAX
+  LDA $E2FA,X
+  STA $29
+  LDA $E2FB,X
+  STA $2A
+  LDX $05BC
+  LDA #$3F
+  STA $04B1,X
+  INX
+  LDA #$00
+  STA $04B1,X
+  INX
+  LDA #$00
+  STA $04B1,X
+  INX
+  LDA #$10
+  STA $04B1,X
+  INX
+  LDY #$00
+: LDA ($29),Y
+  STA PALETTE_UPDATE_START, Y ;$04B1,X
+  INX
+  INY
+  CPY #$10
+  BCC :-
+  STX $05BC
+: LDA $0490
+  CMP $0492
+  BEQ @early_rts_from_palette
+  LDA #$20
+  JSR $E2E6
+  BCC :+
+  JMP $E2E5
+: LDA $0490
+  STA $0492
+  ASL A
+  TAX
+  LDA $E360,X
+  STA $29
+  LDA $E361,X
+  STA $2A
+  LDX $05BC
+  LDA #$3F
+  STA $04B1,X
+  LDA #$10
+  INX
+  STA $04B1,X
+  LDA #$00
+  INX
+  STA $04B1,X
+  INX
+  LDA #$10
+  STA $04B1,X
+  INX
+  LDY #$00
+: LDA ($29),Y
+  STA PALETTE_UPDATE_START + $10, Y ; $04B1,X
+  INX
+  INY
+  CPY #$10
+  BCC :-
+  jsr @finish_palette_updates ; STX $05BC
+@early_rts_from_palette:
+  RTS
+
+.byte $85, $19, $AD, $BB, $05, $38, $ED, $BC, $05, $F0
 .byte $07, $38, $E5, $19, $B0, $02, $38, $60, $18, $60, $88, $E3, $98, $E3, $A8, $E3
 
 
@@ -752,8 +1320,20 @@
 .byte $0F, $0F, $20, $25, $0F, $0F, $20, $21, $0F, $30, $28, $18, $0F, $30, $28, $27
 .byte $0F, $30, $38, $28, $0F, $0F, $0F, $0F, $0F, $0F, $16, $36, $0F, $0F, $12, $22
 .byte $0F, $0F, $10, $00, $0F, $02, $12, $22, $0F, $0F, $16, $36, $0F, $0F, $12, $22
-.byte $0F, $0F, $38, $17, $0F, $0F, $23, $13, $A5, $E9, $29, $FB, $8D, $00, $20, $85
-.byte $E9, $60, $AD, $FF, $BF, $48, $20, $3E, $D8, $A9, $FC, $8D, $A7, $04, $A9, $00
+.byte $0F, $0F, $38, $17, $0F, $0F, $23, $13
+
+; e798 - set vram increment to 1 and store
+
+  jslb set_vram_increment_to_1_and_store, $a0
+  RTS
+  nops 5
+;   LDA $E9
+;   AND #$FB
+;   STA PpuControl_2000
+;   STA $E9
+;   RTS
+
+.byte $AD, $FF, $BF, $48, $20, $3E, $D8, $A9, $FC, $8D, $A7, $04, $A9, $00
 .byte $85, $0B, $85, $0D, $A6, $0B, $BD, $3C, $00, $10, $0C, $29, $10, $D0, $08, $A6
 .byte $0D, $A5, $0B, $95, $04, $E6, $0D, $E6, $0B, $A5, $0B, $C9, $07, $90, $E5, $A5
 .byte $0D, $D0, $03, $4C, $67, $E8, $C6, $0D, $F0, $34, $A5, $0D, $85, $0B, $A9, $00
@@ -825,22 +1405,61 @@
 .byte $03, $03, $03, $03, $01, $01, $03, $01, $01, $01, $01, $01, $01, $01, $03, $01
 .byte $01, $01, $03, $7A, $7B, $7C, $1A, $00, $46, $64, $88, $89, $8A, $8B, $8C, $1A
 .byte $48, $8A, $48, $98, $48, $20, $52, $FE, $20, $70, $C6, $20, $38, $F6, $E6, $F1
-.byte $A5, $E8, $8D, $01, $20, $20, $7B, $FD, $20, $34, $FC, $4C, $21, $EC, $48, $8A
+
+  jslb set_ppu_mask_to_stored_value, $a0
+  nop
+;   LDA $E8
+;   STA PpuMask_2001
+
+.byte $20, $7B, $FD, $20, $34, $FC, $4C, $21, $EC, $48, $8A
 .byte $48, $98, $48, $A5, $F0, $30, $21, $A5, $F0, $09, $80, $85, $F0, $20, $70, $C6
 .byte $20, $67, $F3, $20, $9F, $F4, $20, $1F, $F5, $20, $38, $F6, $20, $7B, $FD, $20
 .byte $34, $FC, $E6, $F1, $A9, $00, $85, $F0, $4C, $21, $EC, $48, $8A, $48, $98, $48
-.byte $20, $52, $FE, $A5, $EB, $48, $AD, $FF, $BF, $48, $A5, $E8, $8D, $01, $20, $AD
-.byte $02, $20, $AD, $02, $20, $A5, $F0, $30, $5B, $A5, $F0, $09, $80, $85, $F0, $20
+.byte $20, $52, $FE, $A5, $EB, $48, $AD, $FF, $BF, $48
+
+  jslb set_ppu_mask_to_stored_value, $a0
+  nop
+;   LDA $E8
+;   STA PpuMask_2001
+
+  LDA RDNMI ; PpuStatus_2002
+  LDA RDNMI ; PpuStatus_2002
+
+.byte $A5, $F0, $30, $5B, $A5, $F0, $09, $80, $85, $F0, $20
 .byte $70, $C6, $A5, $F3, $10, $08, $29, $7F, $85, $F4, $A9, $00, $85, $F3, $A5, $F4
 .byte $F0, $1A, $A0, $00, $84, $F2, $C9, $01, $F0, $06, $C9, $03, $F0, $02, $D0, $06
-.byte $20, $DD, $EC, $4C, $F7, $EB, $20, $9B, $D9, $4C, $F7, $EB, $A9, $00, $8D, $06
-.byte $20, $8D, $06, $20, $20, $6D, $D9, $E6, $F1, $A4, $F4, $B9, $28, $EC, $A2, $80
+.byte $20, $DD, $EC, $4C, $F7, $EB, $20, $9B, $D9, $4C, $F7, $EB
+
+  LDA #$00
+  STA VMADDH ;  PpuAddr_2006
+  STA VMADDL ; PpuAddr_2006
+
+.byte $20, $6D, $D9, $E6, $F1, $A4, $F4, $B9, $28, $EC, $A2, $80
 
 
 ; EC00 - bank 7
-.byte $D0, $03, $B9, $2E, $EC, $A6, $EA, $8D, $00, $C0, $8D, $01, $C0, $9D, $00, $E0
+.byte $D0, $03, $B9, $2E, $EC
+
+  LDX $EA
+  STA $C000
+  STA SCANLINE_FOR_IRQ ; $C001
+  STA $E000,X
+
+
 .byte $A9, $00, $85, $F0, $68, $20, $1D, $FF, $68, $85, $EB, $8D, $00, $80, $20, $A0
-.byte $D0, $68, $A8, $68, $AA, $68, $40, $00, $B8, $48, $A0, $B0, $00, $00, $BC, $48
+.byte $D0
+
+  JMP @exit_from_nmi
+  nops 3
+;   PLA
+;   TAY
+;   PLA
+;   TAX
+;   PLA
+;   RTI
+
+
+.byte $00, $B8, $48, $A0, $B0, $00, $00, $BC, $48
 .byte $A0, $B0, $00, $00, $48, $8A, $48, $98, $48, $8D, $00, $E0, $8D, $01, $E0, $A5
 .byte $EB, $48, $AD, $FF, $BF, $48, $A5, $F4, $0A, $AA, $BD, $64, $EC, $85, $F7, $BD
 .byte $65, $EC, $85, $F8, $6C, $F7, $00, $68, $20, $1D, $FF, $68, $85, $EB, $8D, $00
@@ -851,13 +1470,45 @@
 .byte $E0, $20, $6D, $D9, $E6, $F2, $4C, $57, $EC, $8D, $00, $E0, $E6, $F2, $20, $E0
 .byte $F5, $20, $34, $FC, $4C, $57, $EC, $A5, $F2, $D0, $16, $A9, $18, $A2, $80, $D0
 .byte $02, $A9, $1C, $8D, $00, $C0, $8D, $01, $C0, $20, $11, $F6, $E6, $F2, $4C, $57
-.byte $EC, $8D, $00, $E0, $20, $E0, $F5, $20, $34, $FC, $4C, $57, $EC, $A5, $F4, $C9
-.byte $01, $F0, $07, $C9, $03, $F0, $03, $4C, $07, $ED, $A5, $E9, $29, $FC, $0D, $63
-.byte $06, $85, $E9, $AD, $02, $20, $A5, $F5, $8D, $05, $20, $AD, $61, $06, $8D, $05
+.byte $EC, $8D, $00, $E0, $20, $E0, $F5, $20, $34, $FC, $4C, $57, $EC
 
+
+; ecdd - freeze scrolling for helicopter fight
+  LDA $F4
+  CMP #$01
+  BEQ :+
+  CMP #$03
+  BEQ :+
+  JMP $ED07
+: 
+  ; sets the main nametable for BG to $2000
+  ; this will be taken care of by our scrolling routing
+  ; so we dont' have to do store it.
+  LDA $E9
+  AND #$FC
+  ORA $0663
+  STA $E9
+
+  LDA RDNMI ; PpuStatus_2002
+
+  
+;   jslb set_scroll_for_frame_freeze, $a0
+;   nops 7
+  LDA $F5
+  STA curr_hoff_low ; PpuScroll_2005
+
+  LDA $0661
+  STA curr_voff_low ; PpuScroll_2005
+
+  ; this is the storing we don't have to do
+;   LDA $E9
+;   STA PpuControl_2000
+  nops 5
+  
+  RTS
 
 ; ED00 - bank 7
-.byte $20, $A5, $E9, $8D, $00, $20, $60, $C9, $02, $D0, $01, $60, $60, $78, $D8, $20
+.byte $C9, $02, $D0, $01, $60, $60, $78, $D8, $20
 .byte $A8, $FE, $A9, $06, $20, $1D, $FF, $A9, $00, $8D, $6A, $06, $85, $F3, $85, $F4
 .byte $A9, $FF, $8D, $6B, $06, $20, $75, $F6, $20, $A8, $FE, $20, $C0, $FC, $20, $75
 .byte $D8, $20, $A8, $FE, $20, $6B, $D8, $A2, $34, $20, $F9, $D7, $A9, $00, $A2, $02
@@ -886,7 +1537,13 @@
 .byte $04, $A9, $00, $20, $20, $FC, $A9, $FF, $8D, $6B, $06, $20, $A8, $FE, $20, $00
 .byte $88, $20, $6B, $D8, $20, $D3, $FC, $20, $3E, $D8, $20, $20, $C0, $AD, $8F, $04
 .byte $8D, $91, $04, $20, $3E, $D8, $20, $C0, $FC, $20, $52, $FE, $20, $A8, $FE, $20
-.byte $F3, $D9, $20, $6D, $D9, $AD, $02, $20, $AD, $02, $20, $A9, $00, $85, $F0, $85
+.byte $F3, $D9, $20, $6D, $D9
+
+  LDA RDNMI ; PpuStatus_2002
+  LDA RDNMI ; PpuStatus_2002
+
+
+.byte $A9, $00, $85, $F0, $85
 .byte $EA, $85, $F1, $A9, $19, $8D, $6C, $06, $20, $CA, $EE, $AE, $22, $04, $BD, $4B
 .byte $95, $20, $20, $FC, $A9, $00, $8D, $3F, $06, $60, $A9, $00, $85, $F1, $A9, $C0
 .byte $85, $EC, $20, $9C, $FE, $58, $A5, $F1, $C9, $01, $D0, $FA, $A9, $01, $85, $EA
@@ -1013,12 +1670,48 @@
 .byte $C9, $03, $90, $05, $A9, $00, $8D, $35, $04, $A9, $49, $20, $20, $FC, $60, $A5
 .byte $35, $29, $20, $F0, $28, $AD, $A5, $04, $29, $10, $F0, $17, $A9, $FF, $A0, $80
 .byte $D0, $02, $A9, $FC, $20, $4E, $F5, $A9, $FF, $A0, $80, $D0, $02, $A9, $FC, $20
-.byte $6E, $F5, $60, $A9, $00, $20, $4E, $F5, $A9, $00, $20, $6E, $F5, $60, $48, $AD
-.byte $34, $04, $0A, $AA, $AD, $02, $20, $BD, $69, $F5, $8D, $06, $20, $BD, $68, $F5
-.byte $8D, $06, $20, $68, $8D, $07, $20, $60, $09, $21, $49, $21, $89, $21, $48, $AD
-.byte $35, $04, $0A, $AA, $AD, $02, $20, $A9, $80, $F0, $11, $BD, $9E, $F5, $8D, $06
-.byte $20, $BD, $9D, $F5, $8D, $06, $20, $68, $8D, $07, $20, $60, $BD, $A4, $F5, $8D
-.byte $06, $20, $BD, $A3, $F5, $8D, $06, $20, $68, $8D, $07, $20, $60, $49, $22, $89
+.byte $6E, $F5, $60, $A9, $00, $20, $4E, $F5, $A9, $00, $20, $6E, $F5, $60
+
+; f54e
+  PHA
+  LDA $0434
+  ASL A
+  TAX
+  LDA RDNMI ; PpuStatus_2002
+  LDA $F569,X
+  jsr @store_vm_add_h_to_range ; STA VMADDH ; PpuAddr_2006
+  LDA $F568,X
+  STA VMADDL ; PpuAddr_2006
+  PLA
+  STA VMDATAL ; PpuData_2007
+  RTS
+
+.byte $09, $21, $49, $21, $89, $21
+
+  PHA
+  LDA $0435
+  ASL A
+  TAX
+  LDA RDNMI ; PpuStatus_2002
+  LDA #$80
+  BEQ :+
+  LDA $F59E,X
+  jsr @store_vm_add_h_to_range ; STA VMADDH ; PpuAddr_2006
+  LDA $F59D,X
+  STA VMADDL ; PpuAddr_2006
+  PLA
+  STA VMDATAL ; PpuData_2007
+  RTS
+:
+  LDA $F5A4,X
+  jsr @store_vm_add_h_to_range ; STA VMADDH ; PpuAddr_2006
+  LDA $F5A3,X
+  STA VMADDL ; PpuAddr_2006
+  PLA
+  STA VMDATAL ; PpuData_2007
+  RTS
+
+.byte $49, $22, $89
 .byte $22, $C9, $22, $04, $23, $0B, $23, $14, $23, $20, $47, $E2, $A2, $08, $8A, $48
 .byte $20, $C0, $FC, $20, $70, $C6, $68, $AA, $CA, $10, $F3, $60, $A2, $00, $8E, $3F
 .byte $06, $A0, $02, $98, $48, $20, $C0, $FC, $20, $52, $FE, $20, $70, $C6, $20, $D0
@@ -1031,17 +1724,75 @@
 .byte $63, $06, $29, $02, $F0, $02, $A2, $23, $8E, $06, $20, $A2, $00, $8E, $06, $20
 .byte $60, $A5, $E9, $29, $FC, $0D, $63, $06, $85, $E9, $AD, $02, $20, $AD, $62, $06
 .byte $8D, $05, $20, $A9, $F0, $8D, $05, $20, $A5, $E9, $8D, $00, $20, $A9, $2A, $8D
-.byte $06, $20, $A9, $80, $8D, $06, $20, $60, $AD, $02, $20, $A5, $E9, $29, $FC, $85
-.byte $E9, $8D, $00, $20, $A9, $00, $8D, $05, $20, $8D, $05, $20, $60, $AD, $02, $20
+.byte $06, $20, $A9, $80, $8D, $06, $20, $60
+
+  LDA RDNMI ; PpuStatus_2002
+  LDA $E9
+  AND #$FC
+  jslb update_ppu_control_from_a_and_store, $a0
+;   STA $E9
+;   STA PpuControl_2000
+  LDA #$00
+  STA curr_hoff_low ; PpuScroll_2005
+  STA curr_voff_low ; PpuScroll_2005
+;   jslb reset_offsets, $a0
+  RTS
+  nops 1
+;   nops 2
+
+.byte $AD, $02, $20
 .byte $A5, $E9, $29, $FC, $85, $E9, $8D, $00, $20, $A9, $00, $8D, $05, $20, $8D, $05
-.byte $20, $60, $AD, $02, $20, $A9, $08, $85, $E9, $8D, $00, $20, $A9, $00, $8D, $05
-.byte $20, $8D, $05, $20, $60, $A2, $07, $A9, $00, $9D, $DC, $00, $CA, $10, $FA, $60
+.byte $20, $60
+
+  LDA RDNMI ; PpuStatus_2002
+  LDA #$08
+  jslb update_ppu_control_from_a_and_store, $a0
+;   STA $E9
+;   STA PpuControl_2000
+  LDA #$00
+  jslb simple_scrolling, $a0
+;   STA PpuScroll_2005
+;   STA PpuScroll_2005
+  RTS
+  nops 2
+  nops 1
+
+.byte $A2, $07, $A9, $00, $9D, $DC, $00, $CA, $10, $FA, $60
 .byte $A2, $30, $A9, $80, $D0, $02, $A2, $24, $8E, $9C, $04, $E8, $8E, $9D, $04, $E8
-.byte $8E, $9E, $04, $E8, $8E, $9F, $04, $20, $B4, $FE, $60, $0A, $AA, $BD, $10, $F7
-.byte $85, $29, $BD, $11, $F7, $85, $2A, $20, $98, $E7, $A0, $00, $AD, $02, $20, $C8
-.byte $B1, $29, $8D, $06, $20, $88, $B1, $29, $8D, $06, $20, $C8, $C8, $B1, $29, $C9
-.byte $01, $D0, $04, $C8, $4C, $AC, $F6, $C9, $00, $F0, $09, $20, $D5, $F6, $8D, $07
-.byte $20, $C8, $D0, $E9, $60, $C9, $20, $D0, $03, $A9, $00, $60, $C9, $21, $D0, $03
+.byte $8E, $9E, $04, $E8, $8E, $9F, $04, $20, $B4, $FE, $60
+
+; f69b
+  ASL A
+  TAX
+  LDA $F710,X
+  STA $29
+  LDA $F711,X
+  STA $2A
+  JSR $E798
+  LDY #$00
+  LDA RDNMI ; PpuStatus_2002
+  INY
+  LDA ($29),Y
+  jsr @store_vm_add_h_to_range ; STA VMADDH ; PpuAddr_2006
+  DEY
+  LDA ($29),Y
+  STA VMADDL ; PpuAddr_2006
+  INY
+  INY
+: LDA ($29),Y
+  CMP #$01
+  BNE :+
+  INY
+  JMP $F6AC
+: CMP #$00
+  BEQ :+
+  JSR $F6D5
+  STA VMDATAL ; PpuData_2007
+  INY
+  BNE :--
+: RTS
+
+.byte $C9, $20, $D0, $03, $A9, $00, $60, $C9, $21, $D0, $03
 .byte $A9, $FA, $60, $C9, $2C, $D0, $03, $A9, $F7, $60, $C9, $2E, $D0, $03, $A9, $F6
 .byte $60, $C9, $25, $D0, $03, $A9, $4A, $60, $C9, $30, $90, $08, $C9, $3A, $B0, $04
 
@@ -1154,19 +1905,79 @@
 .byte $2F, $FC, $AD, $FF, $BF, $48, $A9, $02, $20, $1D, $FF, $20, $06, $80, $4C, $2F
 .byte $FC, $AD, $FF, $BF, $48, $A9, $02, $20, $1D, $FF, $20, $09, $80, $4C, $2F, $FC
 .byte $AD, $FF, $BF, $48, $A9, $06, $20, $1D, $FF, $20, $B0, $AB, $4C, $2F, $FC, $70
-.byte $48, $A5, $EC, $48, $A9, $00, $85, $EC, $A5, $E9, $09, $80, $85, $E9, $8D, $00
-.byte $20, $D0, $FE, $A5, $E8, $29, $E7, $85, $E8, $8D, $01, $20, $60, $A5, $E8, $09
+
+; FCC0 - 
+  PHA
+  LDA $EC
+  PHA
+  LDA #$00
+  STA $EC
+    jslb enable_nmi_and_store, $a0
+    nops 5
+    ; LDA $E9
+    ; ORA #$80
+    ; STA $E9
+    ; STA PpuControl_2000
+:  BNE :-  ; infinite loop, iterrupted only by NMI
+    LDA $E8
+    AND #$E7
+    jslb update_ppu_mask_and_store, $a0
+    nops 1
+    ; STA $E8
+    ; STA PpuMask_2001
+  RTS
+
+.byte $A5, $E8, $09
 .byte $18, $D0, $F4, $A5, $E8, $29, $EF, $4C, $D7, $FC, $A5, $E8, $09, $10, $D0, $E7
 .byte $A5, $E8, $29, $F7, $4C, $D7, $FC, $A5, $E8, $09, $08, $D0, $DA, $AD, $02, $20
 
 
 ; FD00 - bank 7
 .byte $A5, $E7, $8D, $05, $20, $A5, $E6, $8D, $05, $20, $A5, $E9, $8D, $00, $20, $60
-.byte $85, $04, $86, $05, $84, $06, $AD, $02, $20, $A5, $E9, $29, $FB, $8D, $00, $20
-.byte $85, $E9, $A5, $04, $8D, $06, $20, $A0, $00, $8C, $06, $20, $A2, $04, $C9, $20
-.byte $B0, $02, $A6, $06, $A0, $00, $A5, $05, $8D, $07, $20, $88, $D0, $FA, $CA, $D0
-.byte $F7, $A4, $06, $A5, $04, $C9, $20, $90, $12, $69, $02, $8D, $06, $20, $A9, $C0
-.byte $8D, $06, $20, $A2, $40, $8C, $07, $20, $CA, $D0, $FA, $A6, $05, $60, $48, $8A
+
+; fd10
+  STA $04
+  STX $05
+  STY $06
+  LDA RDNMI ; PpuStatus_2002
+    jslb set_vram_increment_to_1_and_store, $a0
+    nops 5
+    ; LDA $E9
+    ; AND #$FB
+    ; STA PpuControl_2000
+    ; STA $E9
+  LDA $04
+  jsr @store_vm_add_h_to_range ; STA VMADDH ; PpuAddr_2006
+  LDY #$00
+  STY VMADDL ; PpuAddr_2006
+  LDX #$04
+  CMP #$20
+  BCS :+
+  LDX $06
+: LDY #$00
+  LDA $05
+: STA VMDATAL ; PpuData_2007
+  DEY
+  BNE :-
+  DEX
+  BNE :-
+  LDY $06
+  LDA $04
+  CMP #$20
+  BCC :++
+  ADC #$02
+  jsr @store_vm_add_h_to_range ; STA VMADDH ; PpuAddr_2006
+  LDA #$C0
+  STA VMADDL ; PpuAddr_2006
+  LDX #$40
+: STY VMDATAL ; PpuData_2007
+  DEX
+  BNE :-
+: LDX $05
+  RTS
+
+; fd5e
+.byte $48, $8A
 .byte $84, $05, $18, $E5, $05, $AA, $68, $A0, $00, $84, $04, $91, $04, $88, $D0, $FB
 .byte $C6, $05, $E8, $D0, $F6, $60, $20, $E0, $FD, $F0, $06, $20, $E0, $FD, $20, $02
 .byte $FE, $A2, $01, $B5, $E0, $A8, $55, $E2, $35, $E0, $95, $E0, $94, $E2, $CA, $10
@@ -1185,33 +1996,351 @@
 .byte $AA, $B5, $04, $F0, $02, $D6, $04, $CA, $E4, $04, $D0, $F5, $60, $8A, $48, $98
 .byte $48, $A2, $17, $A0, $02, $B5, $00, $29, $02, $85, $04, $B5, $01, $29, $02, $45
 .byte $04, $18, $F0, $01, $38, $76, $00, $E8, $88, $D0, $FA, $68, $A8, $68, $AA, $A5
-.byte $17, $60, $A9, $00, $8D, $03, $20, $A9, $02, $8D, $14, $40, $60, $A6, $04, $A2
+.byte $17, $60
+
+; NES OAM
+; we handle this all ourselves
+  RTS
+  nops 10
+;   LDA #$00
+;   STA OamAddr_2003
+;   LDA #$02
+;   STA SpriteDma_4014
+;   RTS
+
+.byte $A6, $04, $A2
 .byte $FE, $EA, $CA, $D0, $FC, $C5, $04, $88, $D0, $F3, $60, $85, $13, $A5, $13, $29
 .byte $F0, $F0, $18, $A0, $FA, $20, $5D, $FE, $20, $5D, $FE, $20, $5D, $FE, $20, $5D
 .byte $FE, $A5, $13, $38, $E9, $10, $85, $13, $4C, $6D, $FE, $A5, $13, $29, $0F, $F0
-.byte $0A, $A0, $64, $20, $5D, $FE, $38, $E9, $01, $D0, $F6, $60, $48, $A5, $E9, $09
-.byte $80, $85, $E9, $8D, $00, $20, $68, $60, $48, $A5, $E9, $29, $7F, $85, $E9, $8D
-.byte $00, $20, $68, $60, $A9, $82, $8D, $EB, $00, $8D, $00, $80, $AD, $9C, $04, $8D
-.byte $01, $80, $A9, $83, $8D, $EB, $00, $8D, $00, $80, $AD, $9D, $04, $8D, $01, $80
-.byte $A9, $84, $8D, $EB, $00, $8D, $00, $80, $AD, $9E, $04, $8D, $01, $80, $A9, $85
-.byte $8D, $EB, $00, $8D, $00, $80, $AD, $9F, $04, $8D, $01, $80, $60, $A5, $E9, $10
-.byte $0F, $AD, $EC, $00, $C9, $C0, $D0, $08, $AD, $98, $04, $C9, $40, $F0, $01, $80
+.byte $0A, $A0, $64, $20, $5D, $FE, $38, $E9, $01, $D0, $F6, $60
+
+; enable NMI
+  PHA
+  jslb enable_nmi_and_store, $a0
+  nops 5
+;   LDA $E9
+;   ORA #$80
+;   STA $E9
+;   STA PpuControl_2000
+  PLA
+  RTS
 
 
-; FF00 - bank 7
-.byte $A9, $80, $8D, $EB, $00, $8D, $00, $80, $AD, $98, $04, $8D, $01, $80, $A9, $81
-.byte $8D, $EB, $00, $8D, $00, $80, $AD, $99, $04, $8D, $01, $80, $60, $48, $8A, $48
-.byte $A9, $87, $8D, $EB, $00, $8D, $00, $80, $BA, $BD, $02, $01, $0A, $09, $01, $8D
-.byte $01, $80, $A9, $86, $8D, $EB, $00, $8D, $00, $80, $BD, $02, $01, $0A, $8D, $01
-.byte $80, $68, $AA, $68, $CD, $FF, $BF, $D0, $01, $60, $EA, $AE, $FF, $BF, $80, $EA
-.byte $24, $EC, $10, $08, $50, $03, $4C, $9B, $EB, $4C, $6E, $EB, $50, $03, $4C, $50
-.byte $EB, $A5, $E9, $29, $7F, $85, $E9, $8D, $00, $20, $AD, $02, $20, $68, $68, $68
-.byte $68, $85, $EC, $68, $60, $78, $A2, $FF, $9A, $A9, $00, $8D, $00, $20, $8D, $01
-.byte $20, $A9, $80, $10, $0F, $A2, $02, $2C, $02, $20, $10, $FB, $2C, $02, $20, $30
-.byte $FB, $CA, $D0, $F3, $A9, $08, $8D, $00, $20, $85, $E9, $A9, $01, $8D, $00, $A0
-.byte $D8, $A9, $06, $85, $E8, $8D, $01, $20, $A2, $02, $AD, $02, $20, $10, $FB, $CA
-.byte $D0, $F8, $86, $E7, $86, $E6, $86, $E5, $8E, $16, $40, $A9, $FF, $85, $E4, $A9
-.byte $40, $8D, $17, $40, $A9, $0F, $8D, $15, $40, $A9, $10, $AA, $8D, $06, $20, $8D
-.byte $06, $20, $49, $00, $CA, $D0, $F5, $A9, $80, $85, $EC, $A9, $C0, $85, $ED, $A9
-.byte $00, $8D, $F0, $00, $4C, $0D, $ED, $5C, $5D, $5E, $5F, $6D, $00, $C1, $C2, $C3
+; fea9 - disable and store NMI
+  PHA
+  jslb disable_nmi_and_store, $a0
+  nops 5
+;   LDA $E9
+;   AND #$7F
+;   STA $E9
+;   STA PpuControl_2000
+  PLA
+  RTS
+
+; load bank(s) to BG Tiles
+; we're going to make an assumption, for now
+; that $049c contains the first bank and we're always
+; doing them in order.  so we can load a ful 0x1000 bank at once
+LDA $049C
+; LSR
+; LSR
+STA BG_CHR_BANK_SWITCH
+jslb swap_data_bg_chr, $a0
+rts
+
+ nops 8
+
+
+@check_for_attributes:
+  LDA $04B1,X
+  PHA
+  AND #$F3
+  CMP #$23
+  bne :+
+  LDA $04B2, x
+  CMP #$C0
+  bcc :+
+  LDA $1b
+  SEC
+  SBC #$2E
+  bcc :+
+
+  STA $1b
+  PLA  
+  ; attributes!
+  ; handle them!
+  jslb double_dragon_2_attribute_routine, $a0
+  jmp @check_for_attributes
+  ; attributes are always handled in
+  ; 0x20 blocks
+  ; so now we fake that we finished doing the whole loop
+  ; TXA
+  ; CLC
+  ; ADC #$24
+  ; STA $05BB
+  ; TAX  
+  ; LDA $04B1, x
+  ; PHA
+: PLA
+  jmp @check_for_attributes_return
+
+;   LDA #$82
+;   STA $00EB
+;   STA $8000
+;   LDA $049C
+;   STA $8001
+;   LDA #$83
+;   STA $00EB
+;   STA $8000
+;   LDA $049D
+;   STA $8001
+;   LDA #$84
+;   STA $00EB
+;   STA $8000
+;   LDA $049E
+;   STA $8001
+;   LDA #$85
+;   STA $00EB
+;   STA $8000
+;   LDA $049F
+;   STA $8001
+;   RTS
+
+; feed - load sprite tileset(s)
+  LDA $E9
+  BPL :+
+  LDA $00EC
+  CMP #$C0
+  BNE :+
+  LDA $0498
+  CMP #$40
+  BEQ :+
+  NOP 
+
+  ; load first bank
+: 
+  jslb load_sprite_banks, $a0
+  rts
+
+  ; claiming free space!
+@store_vm_add_h_to_range:
+  jslb store_vmaddh_to_proper_range, $a0
+  RTS
+
+@audio_routine:
+  NOP
+  JSR $FC34
+
+  NOP
+  JSR $FF1D
+  PLA
+  STA $EB
+
+;   LDA $0498
+;   STA CHR_BANK_BANK_TO_LOAD
+;   stz CHR_BANK_TARGET_BANK
+;   jslb load_mmc3_bank_to_slot, $a0
+  nops 5
+;   LDA #$80
+;   STA $00EB
+;   STA $8000
+;   LDA $0498
+;   STA $8001
+
+;   LDA $0499
+;   STA CHR_BANK_BANK_TO_LOAD
+;   INC CHR_BANK_TARGET_BANK
+;   jslb load_mmc3_bank_to_slot, $a0
+;   nops 13
+
+  jmlb return_from_sound, $a0
+;   LDA #$81
+;   STA $00EB
+;   STA $8000
+;   LDA $0499
+;   STA $8001
+
+;   RTS
+
+; ff1d - bank swap
+  
+  PHA
+  
+  LDA NMITIMEN_STATE
+  AND #$7F
+  STA NMITIMEN  
+; nops 8
+
+  PLA
+  PHA
+  AND #$0f
+  INC
+  ORA #$A0
+
+  STA BANK_SWITCH_DB
+  
+  PHA
+  LDA #<@bank_switch_jump
+  STA BANK_SWITCH_LB
+  LDA #>@bank_switch_jump
+  STA BANK_SWITCH_HB
+  JML (BANK_SWITCH_LB)
+
+@bank_switch_jump: 
+  PLB
+
+  PLA
+  PHA
+  STA ACTIVE_NES_BANK
+    
+  jslb reset_nmi_status, $a0
+; nops 4
+  PLA
+
+
+  RTS
+  nops 6
+
+;   PHA
+;   TXA
+;   PHA
+;   LDA #$87
+;   STA $00EB
+;   STA $8000
+;   TSX
+;   LDA $0102,X
+
+;   ASL
+;   ORA #$01
+;   STA $8001
+;   LDA #$86
+;   STA $00EB
+;   STA $8000
+
+; : LDA $0102,X
+;   ASL
+;   STA $8001
+;   PLA
+;   TAX
+
+;   PLA
+;   CMP $BFFF
+;   BNE :+
+;   RTS
+
+; : NOP
+;   LDX $BFFF
+;   BRA :--
+
+@nes_nmi:
+  BIT $EC
+  BPL :++
+  BVC :+
+  JMP $EB9B  ; NE & V+
+: JMP $EB6E  ; NE & V-
+: BVC :+
+  JMP $EB50  ; PL & V+
+: jslb disable_nmi_and_store, $a0
+  ; nops 5
+;   LDA $E9    ; PL & V-
+;   AND #$7F
+;   STA $E9
+;   STA PpuControl_2000
+  LDA RDNMI ; PpuStatus_2002
+  ; we pull 1 extra values from the stack here
+  ; luckily we saved 5 instructions above
+  nops 4
+  PLA
+  PLA
+  PLA
+  PLA
+  PLA
+  STA $EC
+  PLA
+  RTS
+
+@nes_reset:
+; NES initialization
+  SEI
+  ; stack setup, we already did this.
+;   LDX #$FF
+;   TXS
+  nops 3
+
+  jslb set_ppu_control_and_mask_to_0, $a0
+  nops 4
+;   LDA #$00
+;   STA PpuControl_2000
+;   STA PpuMask_2001
+
+
+  LDA #$80
+  BPL :+++
+  LDX #$02
+: BIT RDNMI ; PpuStatus_2002
+  BPL :-
+: BIT RDNMI ; PpuStatus_2002
+  BMI :-
+  DEX
+  BNE :--
+
+: 
+  LDA #$08
+;   STA PpuControl_2000 ; sets the Sprite table, we handle this in our own init.
+  nops 3
+  STA $E9
+
+
+;   LDA #$01  ; sets mirroring to horizontal
+;   STA $A000
+  LDA #$01
+  STA BANK_SWITCH_CTRL_REGS
+
+
+  CLD
+  LDA #$06
+
+  jslb update_ppu_mask_and_store, $a0
+  nops 1
+;   STA $E8
+;   STA PpuMask_2001
+
+  LDX #$02
+: LDA RDNMI ; PpuStatus_2002
+
+  BPL :-
+  DEX
+  BNE :-
+
+  STX $E7
+  STX $E6
+  STX $E5
+  nops 3 ; STX Ctrl1_4016 ; strobe controllers
+  LDA #$FF
+  STA $E4
+
+;   sets IRQ inhibit flag
+  LDA #$40
+  nops 3 ; STA Ctrl2_FrameCtr_4017
+
+  LDA #$0F
+  jsr WriteAPUControl ; STA ApuStatus_4015
+
+  LDA #$10
+  TAX
+: jsr @store_vm_add_h_to_range ; STA VMADDH ; PpuAddr_2006
+  STA VMADDL ; PpuAddr_2006
+  EOR #$00
+  DEX
+  BNE :-
+  LDA #$80
+  STA $EC
+  LDA #$C0
+  STA $ED
+  LDA #$00
+  STA $F0
+  nop
+  JMP $ED0D
+
+.byte $5C, $5D, $5E, $5F, $6D, $00, $C1, $C2, $C3
 .byte $88, $89, $8A, $8B, $8C, $06, $00, $4C, $75, $FF, $50, $FF, $75, $FF, $34, $EC

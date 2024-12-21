@@ -6,16 +6,74 @@
 .define ZP_ADDR_USAGE $50
 
 
+double_dragon_2_attribute_routine:
+  ; do attribute stuff
+  PHX
+  PHY
 
+  LDA $04B1,X
+  INX
+  jslb convert_a_to_vmaddh_range, $a0
+  STA ATTR_NES_VM_ADDR_HB
+  LDA $04B1,x
+  INX
+
+  STA ATTR_NES_VM_ADDR_LB
+  LDA #$20
+  INX
+  INX 
+
+  STA ATTR_NES_VM_COUNT
+  LDA #$01
+
+  STA ATTR_NES_HAS_VALUES
+
+  LDY #$00
+: LDA $04B1, X
+  INX
+  STA ATTR_NES_VM_ATTR_START, y
+  INY
+  CPY #$20
+  BNE :-
+
+  JSR check_and_copy_nes_attributes_to_buffer
+
+  ; post routine simulation
+  PLY
+  PLX
+  TXA
+  CLC
+  ADC #$24
+  STA $05BB
+  CMP $05BC
+  BEQ handle_attributes_done
+  TAX
+  
+  rtl
+
+handle_attributes_done:
+  ; if the last attribute would make
+  ; 5BB == 5BC then we don't want to do another loop, instead we'll rtl to a slightly different location
+  pla
+  pla
+  lda #$C6 ; @vram_done_check
+  pha
+  lda #$7F ; <@vram_done_check
+  pha
+  rtl
+check_and_copy_attribute_buffer_l:
+  jsr check_and_copy_attribute_buffer
+  rtl
 check_and_copy_attribute_buffer:
+
   LDA ATTRIBUTE_DMA
   BEQ :+
   JSR copy_prepped_attributes_to_vram
 : 
-;   LDA ATTRIBUTE2_DMA
-;   BEQ :+
-;   JSR copy_prepped_attributes2_to_vram
-; : 
+  LDA ATTRIBUTE2_DMA
+  BEQ :+  
+  JSR copy_prepped_attributes2_to_vram
+: 
 ;   LDA COLUMN_1_DMA
 ;   BEQ :+
 ;   JSR dma_column_attributes
@@ -24,7 +82,6 @@ check_and_copy_attribute_buffer:
 ;   JSR dma_column2_attributes
 ; : 
   RTS
-
 
 copy_single_prepped_attribute:
   LDA ZP_ADDR_USAGE
@@ -203,6 +260,19 @@ convert_nes_attributes_and_immediately_dma_them:
   PHB
   PHK
   PLB
+
+  JSR check_and_copy_nes_attributes_to_buffer
+  JSR check_and_copy_attribute_buffer
+
+ 
+  PLB
+  rtl
+
+; converts attributes stored at 9A0 - A07 to attribute cache
+check_and_copy_nes_attributes_to_buffer:
+  LDA ATTR_NES_HAS_VALUES
+  BEQ early_rts_from_attribute_copy
+
   LDA ATTR_WORK_BYTE_0
   PHA
   LDA ATTR_WORK_BYTE_1
@@ -212,9 +282,16 @@ convert_nes_attributes_and_immediately_dma_them:
   LDA ATTR_WORK_BYTE_3 
   PHA
 
-  JSR check_and_copy_nes_attributes_to_buffer
-  JSR check_and_copy_attribute_buffer
+  LDA ATTRIBUTE_DMA
+  BNE :+
+  JSR convert_attributes_inf
+  bra early_rts_from_attribute_copy
+: 
+  LDA ATTRIBUTE2_DMA
+  BNE early_rts_from_attribute_copy
+  JSR convert_attributes2_inf
 
+early_rts_from_attribute_copy:
   pla
   sta ATTR_WORK_BYTE_3
   pla
@@ -223,19 +300,7 @@ convert_nes_attributes_and_immediately_dma_them:
   sta ATTR_WORK_BYTE_1
   pla 
   sta ATTR_WORK_BYTE_0
-  PLB
-  rtl
 
-; converts attributes stored at 9A0 - A07 to attribute cache
-check_and_copy_nes_attributes_to_buffer:
-  LDA ATTR_NES_HAS_VALUES
-  BEQ :+
-  JSR convert_attributes_inf
-: 
-  ; LDA ATTR2_NES_HAS_VALUES
-  ; BEQ early_rts_from_attribute_copy
-  ; JSR convert_attributes2_inf
-early_rts_from_attribute_copy:
   RTS
   
 convert_attributes_inf:
@@ -243,13 +308,13 @@ convert_attributes_inf:
   PLB
   LDX #$00
   JSR disable_attribute_hdma
-  LDA #$A1
+  LDA #<(ATTR_NES_VM_ADDR_HB) ; #$A1
   STA ATTR_WORK_BYTE_0
-  LDA #$09
+  LDA #>(ATTR_NES_VM_ADDR_HB) ; #$09
   STA ATTR_WORK_BYTE_1
   STZ ATTR_DMA_SRC_LB
   STZ ATTR_DMA_SRC_LB + 1
-  LDA #$18
+  LDA #>(ATTRIBUTE_CACHE) ; #$18
   STA ATTR_DMA_SRC_HB
   LDA #$1A
   STA ATTR_DMA_SRC_HB + 1
@@ -288,7 +353,7 @@ inf_9497:
   ; ASL a
   ; ASL a
   ; ASL A
-  STA ATTR_DMA_VMADDL,X
+  STA ATTR_DMA_VMADDL
   LDA (ATTR_WORK_BYTE_0),Y
   AND #$30
   LSR
@@ -777,3 +842,5 @@ zero_all_attributes:
   
   zero_all_attributes_values:
   .byte $00, $00
+
+  .include "attributes2.asm"

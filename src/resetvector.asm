@@ -12,12 +12,16 @@ PLB
 JSL $A08000
 
 nmi:
-    PHP
+    ; PHP
     PHA
     PHX
     PHY
-    jslb snes_nmi, $a0
-    
+
+    ; sometimes the NES doesn't RTI, so we're going to set defaults for when it does that here
+    ; jslb set_scrolling_hdma_defaults, $a0
+    jslb dma_oam_table_long, $a0
+    jslb check_for_palette_updates, $a0
+    jslb check_and_copy_attribute_buffer_l, $a0
     ; jump to NES NMI
     CLC
     LDA ACTIVE_NES_BANK
@@ -27,16 +31,28 @@ nmi:
     PHA
     PLB
 
-    ; This assume the NES NMI is at $C000
-    LDA #$C0
+    ; This assume the NES NMI is at $FF50
+    LDA #$FF
     STA BANK_SWITCH_HB
-    LDA #$00
+    LDA #$50
     STA BANK_SWITCH_LB
+    PLY
+    PLX
+    PLA
     JML [BANK_SWITCH_LB]
 
 return_from_nes_nmi:
+    PHP
+    PHA
+    PHX
+    PHY
+
     ; handle sprite traslation last, since if that bleeds out of vblank it's ok
+    jslb snes_nmi, $a0
+    jslb check_for_palette_updates, $a0
+    jslb audio_interrupt_1, $a0
     jslb translate_8by8only_nes_sprites_to_oam, $a0
+
     PLY
     PLX
     PLA

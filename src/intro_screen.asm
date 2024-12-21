@@ -162,7 +162,7 @@ do_intro:
     JSR write_intro_palette
     JSR write_default_palettes
     JSR write_intro_tiles
-    JSR write_intro_sprites
+    ; JSR write_intro_sprites
 
     LDA #$0F
     STA INIDISP
@@ -281,24 +281,24 @@ check_for_sprite_swap:
     JSR dma_oam_table
     rts
 
-check_for_msu:
-    LDA JOYTRIGGER1
-    AND #$01
-    CMP #$01
-    BEQ :+
-    LDA JOYTRIGGER1
-    AND #$02
-    CMP #$02
-    BNE :-
-:   LDA MSU_SELECTED
-    EOR #$01
-    STA MSU_SELECTED
+; check_for_msu:
+;     LDA JOYTRIGGER1
+;     AND #$01
+;     CMP #$01
+;     BEQ :+
+;     LDA JOYTRIGGER1
+;     AND #$02
+;     CMP #$02
+;     BNE :-
+; :   LDA MSU_SELECTED
+;     EOR #$01
+;     STA MSU_SELECTED
 
-    LDA SNES_OAM_START + (4*9 - 1)
-    EOR #$40
-    STA SNES_OAM_START + (4*9 - 1)
-    JSR dma_oam_table
-    RTS
+;     LDA SNES_OAM_START + (4*9 - 1)
+;     EOR #$40
+;     STA SNES_OAM_START + (4*9 - 1)
+;     JSR dma_oam_table
+;     RTS
 
 ; if a sprite wants to be on the intro screen,
 ; can put the data here    
@@ -361,62 +361,53 @@ load_intro_tilesets:
     LDA #SPRITE_INDEX_PLAYER
     STA CHR_BANK_BANK_TO_LOAD
     STZ CHR_BANK_TARGET_BANK
-    jsl dma_sprite_to_slot
+    jsl load_mmc3_bank_to_slot
 
-    LDA #SPRITE_INDEX_MISC
-    STA CHR_BANK_BANK_TO_LOAD
     LDA #$01
-    STA CHR_BANK_TARGET_BANK
-    jsl dma_sprite_to_slot
+    STA CHR_BANK_TARGET_BANK    
+    LDA #SPRITE_INDEX_MISC
+    jsl load_mmc3_bank_to_slot
 
 
-    LDA #SPRITE_INDEX_ROPER_B
-    STA CHR_BANK_BANK_TO_LOAD
     LDA #$02
     STA CHR_BANK_TARGET_BANK
-    jsl dma_sprite_to_slot
+    LDA #SPRITE_INDEX_ROPER_B
+    jsl load_mmc3_bank_to_slot
 
-    LDA #SPRITE_INDEX_LINDA
-    STA CHR_BANK_BANK_TO_LOAD
     LDA #$03
     STA CHR_BANK_TARGET_BANK
-    jsl dma_sprite_to_slot
+    LDA #SPRITE_INDEX_LINDA
+    jsl load_mmc3_bank_to_slot
     
-    LDA #SPRITE_INDEX_WILLIAM
-    STA CHR_BANK_BANK_TO_LOAD
     LDA #$04
     STA CHR_BANK_TARGET_BANK
-    jsl dma_sprite_to_slot
+    LDA #SPRITE_INDEX_WILLIAM
+    jsl load_mmc3_bank_to_slot
     
-    LDA #SPRITE_INDEX_RIGHT_HAND
-    STA CHR_BANK_BANK_TO_LOAD
     LDA #$05
     STA CHR_BANK_TARGET_BANK
-    jsl dma_sprite_to_slot
+    LDA #SPRITE_INDEX_RIGHT_HAND
+    jsl load_mmc3_bank_to_slot
     
-    LDA #SPRITE_INDEX_CHIN
-    STA CHR_BANK_BANK_TO_LOAD
     LDA #$06
     STA CHR_BANK_TARGET_BANK
-    jsl dma_sprite_to_slot
+    LDA #SPRITE_INDEX_CHIN
+    jsl load_mmc3_bank_to_slot
     
-    LDA #SPRITE_INDEX_ABOBO
-    STA CHR_BANK_BANK_TO_LOAD
     LDA #$07
     STA CHR_BANK_TARGET_BANK
-    jsl dma_sprite_to_slot
+    LDA #SPRITE_INDEX_ABOBO
+    jsl load_mmc3_bank_to_slot
 
-    LDA #SPRITE_INDEX_ABORE
-    STA CHR_BANK_BANK_TO_LOAD
     LDA #$08
     STA CHR_BANK_TARGET_BANK
-    jsl dma_sprite_to_slot
+    LDA #SPRITE_INDEX_ABORE
+    jsl load_mmc3_bank_to_slot
 
-    LDA #SPRITE_INDEX_BURNOV
-    STA CHR_BANK_BANK_TO_LOAD
     LDA #$09
     STA CHR_BANK_TARGET_BANK
-    jsl dma_sprite_to_slot
+    LDA #SPRITE_INDEX_BURNOV
+    jsl load_mmc3_bank_to_slot
 
 
     rts

@@ -144,7 +144,7 @@ initialize_registers:
   STA BG34NBA
   LDA #$01
   STA BGMODE
-  LDA #$21
+  LDA #$22
   STA BG1SC
 ;   LDA #$32
 ;   STA BG2SC
@@ -177,10 +177,6 @@ initialize_registers:
   STZ ATTR_NES_VM_ADDR_HB
   STZ ATTR_NES_VM_ADDR_LB
   STZ ATTR_NES_VM_ATTR_START
-  STZ ATTR2_NES_HAS_VALUES
-  STZ ATTR2_NES_VM_ADDR_HB
-  STZ ATTR2_NES_VM_ADDR_LB
-  STZ ATTR2_NES_VM_ATTR_START
   STZ ATTRIBUTE2_DMA
   STZ ATTRIBUTE_DMA
   STZ COL_ATTR_HAS_VALUES
@@ -206,11 +202,13 @@ intro_done:
   JSR write_default_palettes
   ; JSR write_stack_adjustment_routine_to_ram
   ; JSR write_sound_hijack_routine_to_ram
-  
+  LDA #$06
+  STA ACTIVE_NES_BANK
+
   LDA #$02
   STA $4D
 
-  LDA #$A1
+  LDA #$A7
   PHA
   PLB 
   JML $A7FF75
@@ -218,10 +216,15 @@ intro_done:
 
   snes_nmi:
     LDA RDNMI 
-    jslb update_values_for_ppu_mask, $a0
-    jslb infidelitys_scroll_handling, $a0
-    jslb setup_hdma, $a0
 
+    jsr make_the_game_easier
+    jslb update_values_for_ppu_mask, $a0
+    ; jslb simple_scrolling, $a0
+    jslb infidelitys_scroll_handling, $a0
+    ; jslb setup_hdma, $a0
+    ; jslb handle_scroll_no_irq, $a0
+    ; jslb handle_scroll, $a0
+    jslb calculate_hdma_l, $a0
     LDA #$7E
     STA A1B3
     LDA #$09
@@ -236,11 +239,47 @@ intro_done:
     LDA #%00001000
     STA HDMAEN
 
-    JSR dma_oam_table
+    ; JSR dma_oam_table
     RTL
 
+make_the_game_easier:
+  STZ ENEMY_1_HEALTH
+  STZ ENEMY_2_HEALTH
+  PHA
+  LDA #$4F
+  STA P1_HEALTH
+  PLA
+  rts
+
+audio_interrupt_1:
+    ; handle sound stuff, which the nes game does via IRQ
+    LDA #$FF
+    STA BANK_SWITCH_HB
+    LDA #$09
+    STA BANK_SWITCH_LB
+    LDA ACTIVE_NES_BANK
+    PHA
+    AND #$0F
+    INC
+    ORA #$A0
+    STA BANK_SWITCH_DB    
+    PHA
+    PLB
+    JML [BANK_SWITCH_LB]
+return_from_sound:
+    rtl
+
 clear_bg_jsl:
+  LDA $00
+  PHA
+  LDA #$20
+  STA $00
   jsr clear_bg
+  LDA #$24
+  STA $00
+  jsr clear_bg
+  PLA
+  STA $00
   rtl
 clear_bg:
 
@@ -277,6 +316,7 @@ clear_bg:
   LDA VMAIN_STATE
   STA VMAIN
   RTS
+
 
 clearvm_jsl:
   jsr clearvm

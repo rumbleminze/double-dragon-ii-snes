@@ -123,14 +123,15 @@ check_for_chr_bankswap:
 : RTL
 
 
-; we'll put the data at $7000 always
+bg_lookup_table:
+ ; 00
+
+; we'll put the data at $1000 always
 swap_data_bg_chr:
   LDA BG_CHR_BANK_SWITCH
   CMP DATA_CHR_BANK_CURR
   BEQ :-
   STA DATA_CHR_BANK_CURR
-  LDA #$60
-  STA TARGET_BANK_OFFSET
   JMP bankswap_start
 
 
@@ -144,6 +145,7 @@ check_for_bg_chr_bankswap:
 
   CMP BG_CHR_BANK_CURR
   BEQ :-
+
 
 bankswap_start:
   LDA NMITIMEN_STATE
@@ -169,55 +171,25 @@ bankswap_start:
   ; STA OBJ_CHR_BANK_SWITCH
 
   PHB
-  LDA #$A0
-  PHA
+  PHK
   PLB
 
-  ; looks like we need to switch CHR Banks
-  ; we fake this by DMA'ing tiles from the right tileset
-  ; multiply by 3 to get the offset
-  LDA BG_CHR_BANK_CURR
-  ASL A
-  ADC BG_CHR_BANK_CURR
-  TAY
+  stz TARGET_BANK_OFFSET
+  sta BG_CHR_BANK_CURR
+  jsr load_bg_chunk
+  lda #$04
+  sta TARGET_BANK_OFFSET
+  inc BG_CHR_BANK_CURR
+  jsr load_bg_chunk
+  lda #$08
+  sta TARGET_BANK_OFFSET
+  inc BG_CHR_BANK_CURR
+  jsr load_bg_chunk
+  lda #$0C
+  sta TARGET_BANK_OFFSET
+  inc BG_CHR_BANK_CURR
+  jsr load_bg_chunk
 
-  LDA #$80
-  STA VMAIN
-
-  LDA #$01
-  STA DMAP1
-
-  LDA #$18
-  STA BBAD1
-
-  ; source LB
-  LDA bankswap_table, Y
-  STA A1T1L
-
-  ; source HB
-  INY
-  LDA bankswap_table, y
-  STA A1T1H
-
-  ; source DB
-  INY
-  LDA bankswap_table, y
-  STA A1B1
-
-  ; 0x2000 bytes
-  LDA #$20
-  STA DAS1H
-  STZ DAS1L
-
-  ; page 2 is at $1000, data bank will add 6000 to that
-  LDA #$10
-  ADC TARGET_BANK_OFFSET
-  STA VMADDH
-  STZ VMADDL
-  STZ TARGET_BANK_OFFSET
-
-  LDA #$02
-  STA MDMAEN
   PLB
   LDA VMAIN_STATE
   STA VMAIN
@@ -234,6 +206,68 @@ bankswap_start:
   ; STA INIDISP
 
   RTL
+
+load_bg_chunk:
+  ; looks like we need to switch CHR Banks
+  ; we fake this by DMA'ing tiles from the right tileset
+  ; multiply by 3 to get the offset
+  ; LDA BG_CHR_BANK_CURR
+  ; ASL A
+  ; ADC BG_CHR_BANK_CURR
+  ; TAY
+
+  LDA #$80
+  STA VMAIN
+
+  LDA #$01
+  STA DMAP1
+
+  LDA #$18
+  STA BBAD1
+
+  ; source LB
+  STZ A1T1L
+
+  ; source HB
+  LDA BG_CHR_BANK_CURR  
+  PHA
+  AND #$0f
+  ASL
+  ASL
+  ASL
+  CLC
+  ADC #$80
+  STA A1T1H
+
+  ; source DB
+  PLA  
+  LSR
+  LSR
+  LSR
+  LSR
+  CLC
+  ADC #$A8
+  STA A1B1
+
+
+  ; if the HB is at F0, then we need to only do 0x1000 bytes
+  ; and we need to do another
+  ; otherwise 0x2000 bytes
+  LDA #$08
+  STA DAS1H
+  STZ DAS1L
+
+
+  ; page 2 is at $1000 + , data bank will add 6000 to that
+  LDA #$10
+  CLC
+  ADC TARGET_BANK_OFFSET
+  STA VMADDH
+  STZ VMADDL
+
+  LDA #$02
+  STA MDMAEN
+  rts
 
 bankswitch_bg_chr_data:
   PHB
@@ -363,31 +397,201 @@ sprite_location_table:
 .byte <ninja_sprites,                 >ninja_sprites,                 ^ninja_sprites 
 .byte <mysterious_warrior_sprites,    >mysterious_warrior_sprites,    ^mysterious_warrior_sprites 
 .byte <misc_sprites,                  >misc_sprites,                  ^misc_sprites 
+.byte <title_screen_1,                >title_screen_1,                ^title_screen_1
+.byte <title_screen_2,                >title_screen_2,                ^title_screen_2
 
 .byte <mysterious_warrior_sprites_2,  >mysterious_warrior_sprites_2,  ^mysterious_warrior_sprites_2 
 .byte <burnov_sprites_3,              >burnov_sprites_3,              ^burnov_sprites_3 
 .byte <roper_grenade_sprites,         >roper_grenade_sprites,         ^roper_grenade_sprites 
 
+load_sprite_banks:
+  PHB
+  PHK
+  PLB
+
+
+
+  LDY #$00
+  LDA SPRITE_LOADED_TABLE, Y
+  CMP $0498
+  BEQ second_half
+
+  ; first half isn't correct, and we always load 498 to the first slot, because it's
+  ; player sprites 99% of the time
+  LDA $0498
+  STA CHR_BANK_BANK_TO_LOAD
+  STZ CHR_BANK_TARGET_BANK
+  jslb load_mmc3_bank_to_slot, $a0
+  
+second_half:
+  LDA $0499  
+  CMP CURRENT_ENEMY_LOADED
+  BEQ already_loaded
+
+  STA CHR_BANK_BANK_TO_LOAD
+  LDY #$00  
+
+: INY
+  CPY #$0A
+  BEQ bank_not_found
+  LDA SPRITE_LOADED_TABLE, Y
+  CMP CHR_BANK_BANK_TO_LOAD
+  BNE :-
+found_sprite_bank_at_y:
+  TYA
+  STA ACTIVE_SPRITE_SECOND_BANK_SLOT
+  jsr set_sprite_offsets_based_on_loaded_enemey
+already_loaded:  
+  PLB
+  rtl
+
+
+
+set_sprite_offsets_based_on_loaded_enemey:
+  LDA $0499
+  STA CURRENT_ENEMY_LOADED
+
+  LDA ACTIVE_SPRITE_SECOND_BANK_SLOT  
+  AND #$01
+  BEQ :+
+  LDA #$80
+  BRA :++
+: LDA #$00
+: STA CURRENT_ENEMY_TILE_OFFSET
+
+  STZ CURRENT_SPRITE_TABLE_OFFSET
+  LDA ACTIVE_SPRITE_SECOND_BANK_SLOT
+  LSR
+  BNE :+
+  ; this is on the first page, we don't need to both updating the OBSEL
+  rts
+: LDA #$01
+  STA CURRENT_SPRITE_TABLE_OFFSET
+
+  LDA ACTIVE_SPRITE_SECOND_BANK_SLOT
+  TAY
+  lda sprite_bank_to_table_offset, Y
+  STA OBSEL
+  
+  rts
+; set up 
+
+bank_not_found:  
+  ; oh noes!  eventually, we'll want to do this more optimatlly during level load or something
+  ; for now look for an empty slot
+  LDY #$00
+: INY
+  CPY #$0A
+  BNE :+
+  LDY #$01
+  BRA load_to_y
+:
+  LDA SPRITE_LOADED_TABLE, Y
+  BMI load_to_y
+  BRA :--
+
+load_to_y:
+  TYA
+  STA CHR_BANK_TARGET_BANK
+  STA ACTIVE_SPRITE_SECOND_BANK_SLOT
+  LDA CHR_BANK_BANK_TO_LOAD
+  jslb load_mmc3_bank_to_slot, $a0
+  jsr set_sprite_offsets_based_on_loaded_enemey
+  PLB
+  rtl
+
+load_mmc3_bank_to_slot:
+  PHB
+  PHK
+  PLB
+
+  PHA
+  
+  STZ NMITIMEN
+
+  LDA #$80
+  STA VMAIN
+  STA INIDISP
+
+  LDA #$01
+  STA DMAP1
+
+  LDA #$18
+  STA BBAD1
+
+  ; source LB
+  STZ A1T1L
+
+  ; source HB
+  PLA
+  PHA
+  AND #$0f
+  ASL
+  ASL
+  ASL
+  CLC
+  ADC #$80
+  STA A1T1H
+
+  ; source DB
+  PLA
+  PHA
+  LSR
+  LSR
+  LSR
+  LSR
+  CLC
+  ADC #$A8
+  STA A1B1
+
+  ; 0x1000 bytes
+  LDA #$10
+  STA DAS1H
+  STZ DAS1L
+
+  LDA CHR_BANK_TARGET_BANK
+  TAY
+
+  ; save which enemy we've loaded to this slot
+  PLA
+  STA SPRITE_LOADED_TABLE, Y
+
+  lda target_sprite_bank_table, Y  
+  STA VMADDH
+  STZ VMADDL
+
+  LDA #$02
+  STA MDMAEN
+  PLB
+  LDA VMAIN_STATE
+  STA VMAIN
+  LDA RDNMI
+  LDA NMITIMEN_STATE
+  STA NMITIMEN
+  LDA INIDISP_STATE
+  STA INIDISP
+  rtl
+
 ; sprite constants
-SPRITE_INDEX_PLAYER = 0
-SPRITE_INDEX_ROPER_B = 1
-SPRITE_INDEX_LINDA = 2
-SPRITE_INDEX_ABOBO = 3
-SPRITE_INDEX_BURNOV = 4
-SPRITE_INDEX_SHADOW = 5
-SPRITE_INDEX_CHIN = 6
-SPRITE_INDEX_WILLIAM = 7
+SPRITE_INDEX_PLAYER = $40
+SPRITE_INDEX_ROPER_B = $42
+SPRITE_INDEX_LINDA = $44
+SPRITE_INDEX_ABOBO = $46
+SPRITE_INDEX_BURNOV = $48
+SPRITE_INDEX_SHADOW = $4A
+SPRITE_INDEX_CHIN = $4C
+SPRITE_INDEX_WILLIAM = $4E
 
-SPRITE_INDEX_BURNOV2 = 8
-SPRITE_INDEX_ABORE = 9
-SPRITE_INDEX_RIGHT_HAND = 10
-SPRITE_INDEX_NINJA = 11
-SPRITE_INDEX_MYST_WARR = 12
-SPRITE_INDEX_MISC = 13
+SPRITE_INDEX_BURNOV2 = $50
+SPRITE_INDEX_ABORE = $52
+SPRITE_INDEX_RIGHT_HAND = $54
+SPRITE_INDEX_NINJA = $56
+SPRITE_INDEX_MYST_WARR = $58
+SPRITE_INDEX_MISC = $5A
 
-SPRITE_INDEX_MYST_WARR2 = 14
-SPRITE_INDEX_BURNOV3 = 15
-SPRITE_INDEX_ROPER_G = 16
+; SPRITE_INDEX_MYST_WARR2 = $5
+; SPRITE_INDEX_BURNOV3 = 15
+; SPRITE_INDEX_ROPER_G = 16
 
 target_sprite_bank_table:
 .byte $40, $48, $50, $58, $60, $68, $70, $78, $00, $08
@@ -402,6 +606,8 @@ target_sprite_bank_table:
 ; slot 5 = 0x6800
 ; slot 6 = 0x7000
 ; slot 7 = 0x7800
+; slot 8 = 0x0000
+; slot 9 = 0x0800
 dma_sprite_to_slot:
   PHB
   PHA

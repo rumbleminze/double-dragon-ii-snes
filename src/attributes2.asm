@@ -9,24 +9,17 @@ copy_prepped_attributes2_to_vram:
   LDX ATTRIBUTE2_DMA + 1
   LDA #$7E
   STA A1B6
-  LDA ATTR2_DMA_SRC_HB,X
+  LDA ATTR2_DMA_SRC_HB
   STA A1T6H
-  LDA ATTR2_DMA_SRC_LB,X
+  LDA ATTR2_DMA_SRC_LB
   STA A1T6L
-  LDA ATTR2_DMA_SIZE_LB,X
-  CMP #$80
-  BMI handle_partials2
-  BRA handle_full2
-handle_partials2:
-  JSR copy_partial_prepped_attributes2_to_vram
-  BRA :+
-handle_full2: 
+  LDA ATTR2_DMA_SIZE_LB
   STA DAS6L
-  LDA ATTR2_DMA_SIZE_HB,X
+  LDA ATTR2_DMA_SIZE_HB
   STA DAS6H
-  LDA ATTR2_DMA_VMADDH,X
+  LDA ATTR2_DMA_VMADDH
   STA VMADDH
-  LDA ATTR2_DMA_VMADDL,X
+  LDA ATTR2_DMA_VMADDL
   STA VMADDL
   LDA #$40
   STA MDMAEN
@@ -42,50 +35,50 @@ handle_full2:
   STA ATTRIBUTE2_DMA + 1
   RTS
 
-copy_partial_prepped_attributes2_to_vram:
+; copy_partial_prepped_attributes2_to_vram:
 
-; these are the same for all of them
+; ; these are the same for all of them
 
-  LDA #$7E
-  STA A1B6
+;   LDA #$7E
+;   STA A1B6
 
-partial_row_loop2:
-  LDA ATTR2_DMA_SIZE_LB, X
-  LSR
-  LSR
-  STA DAS6L
-  LDA #$00
-  STA DAS6H
-  LDA ATTR2_DMA_SRC_LB,X
-  CLC
-  ADC ATTR_PARTIAL_CURR_OFFSET
-  BCC :+
-  ; rollover, bump up HB
-  INC ATTR2_DMA_SRC_HB
-: STA A1T6L
+; partial_row_loop2:
+;   LDA ATTR2_DMA_SIZE_LB, X
+;   LSR
+;   LSR
+;   STA DAS6L
+;   LDA #$00
+;   STA DAS6H
+;   LDA ATTR2_DMA_SRC_LB,X
+;   CLC
+;   ADC ATTR_PARTIAL_CURR_OFFSET
+;   BCC :+
+;   ; rollover, bump up HB
+;   INC ATTR2_DMA_SRC_HB
+; : STA A1T6L
   
-  LDA ATTR2_DMA_SRC_HB,X
-  STA A1T6H  
+;   LDA ATTR2_DMA_SRC_HB,X
+;   STA A1T6H  
 
-  LDA ATTR2_DMA_VMADDL,X
-  CLC
-  ADC ATTR_PARTIAL_CURR_OFFSET 
-  BCC :+
-  INC ATTR2_DMA_VMADDH, X
-: STA VMADDL
+;   LDA ATTR2_DMA_VMADDL,X
+;   CLC
+;   ADC ATTR_PARTIAL_CURR_OFFSET 
+;   BCC :+
+;   INC ATTR2_DMA_VMADDH, X
+; : STA VMADDL
 
-  LDA ATTR2_DMA_VMADDH,X
-  STA VMADDH
+;   LDA ATTR2_DMA_VMADDH,X
+;   STA VMADDH
   
-  LDA #$40
-  STA MDMAEN
+;   LDA #$40
+;   STA MDMAEN
 
-  LDA ATTR_PARTIAL_CURR_OFFSET
-  ADC #$20
-  STA ATTR_PARTIAL_CURR_OFFSET
-  CMP #$80
-  BMI partial_row_loop2
-  STZ ATTR_PARTIAL_CURR_OFFSET
+;   LDA ATTR_PARTIAL_CURR_OFFSET
+;   ADC #$20
+;   STA ATTR_PARTIAL_CURR_OFFSET
+;   CMP #$80
+;   BMI partial_row_loop2
+;   STZ ATTR_PARTIAL_CURR_OFFSET
 early_rts_from_attribute2_copy:
   RTS
 
@@ -94,22 +87,22 @@ convert_attributes2_inf:
   PLB
   LDX #$00
   JSR disable_attribute_hdma
-  LDA #.lobyte(ATTR2_NES_VM_ADDR_HB) ; #$A1
+  LDA #<(ATTR_NES_VM_ADDR_HB) ; #$A1
   STA ATTR_WORK_BYTE_0
-  LDA #.hibyte(ATTR2_NES_VM_ADDR_HB) ; #$09
+  LDA #>(ATTR_NES_VM_ADDR_HB) ; #$09
   STA ATTR_WORK_BYTE_1
   STZ ATTR2_DMA_SRC_LB
   STZ ATTR2_DMA_SRC_LB + 1
-  LDA #.hibyte(ATTRIBUTE2_CACHE) ; #$19
+  LDA #>(ATTRIBUTE2_CACHE) ; #$1A
   STA ATTR2_DMA_SRC_HB
-  LDA #$1A
-  STA ATTR2_DMA_SRC_HB + 1
+  ; LDA #>(ATTRIBUTE2_CACHE)
+  ; STA ATTR2_DMA_SRC_HB + 1
   LDY #$00  
 
 inf2_9497:
   LDA (ATTR_WORK_BYTE_0),Y ; $00.w is $09A1 to start
   ; early rtl  
-  STZ ATTR2_NES_HAS_VALUES
+  STZ ATTR_NES_HAS_VALUES
   BEQ early_rts_from_attribute2_copy
   AND #$03
   CMP #$03
@@ -140,7 +133,7 @@ inf2_9497:
   ; ASL a
   ; ASL a
   ; ASL A
-  STA ATTR2_DMA_VMADDL,X
+  STA ATTR2_DMA_VMADDL
   LDA (ATTR_WORK_BYTE_0),Y
   AND #$30
   LSR
@@ -167,22 +160,31 @@ inf2_9497:
 : INY
   INY
   LDA (ATTR_WORK_BYTE_0),Y
-  AND #$3F
-  PHX
-  TAX
-  LDA attr_lookup_table_2_inf_95C0 + 15,X
-  PLX
+  AND #$0F
+  ASL
+  ASL
+  ASL
+  ASL
+  ; PHX
+  ; TAX
+  ; LDA attr_lookup_table_2_inf_95C0 + 15,X
+  ; PLX
   STA ATTR2_DMA_SIZE_LB,X
   LDA (ATTR_WORK_BYTE_0),Y
-  AND #$3F  
+  AND #$F0  
   CMP #$0F
   BPL :+
   LDA #$00
   BRA :++
-: PHX
-  TAX
-  LDA inf_95AE,X
-  PLX
+: AND #$F0
+  LSR 
+  LSR 
+  LSR 
+  LSR 
+  ; PHX
+  ; TAX
+  ; LDA inf_95AE,X
+  ; PLX
 : STA ATTR2_DMA_SIZE_HB,X
   ; LDA #$80
   ; STA ATTR2_DMA_SIZE_LB
@@ -284,7 +286,7 @@ inf2_952D:
   LDA (ATTR_WORK_BYTE_0,X)
   BNE inf2_95b9
 
-  STZ ATTR2_NES_HAS_VALUES
+  STZ ATTR_NES_HAS_VALUES
   LDA #$FF
   STA ATTRIBUTE2_DMA
   RTS

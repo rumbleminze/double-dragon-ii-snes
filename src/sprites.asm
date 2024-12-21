@@ -185,7 +185,10 @@ translate_8by8only_nes_sprites_to_oam:
     ; PHX
     ; PHY
     ; PHB
-:   setXY16
+:   
+  LDA SPRITE_LOOP_JUNK
+  PHA
+  setXY16
 	LDY #$0000
 
 sprite_loop:	
@@ -193,7 +196,7 @@ sprite_loop:
 	; byte 0, Tile Y position
 	LDA $200,Y
 	STA SNES_OAM_START + 1, y
-  CMP #$F8
+  CMP #$F0
   beq next_sprite
 
 	; byte 1, Tile index
@@ -215,9 +218,21 @@ sprite_loop:
 	AND #$F0
 	EOR #%00110000
 	ORA SPRITE_LOOP_JUNK
-	; LDA #%00010010
+  STA SPRITE_LOOP_JUNK
 
-	STA SNES_OAM_START + 3, y
+  LDA $201, Y
+  BPL :+
+  ; 2nd half tile, adjust it based on active bank
+  AND #$7F
+  ORA CURRENT_ENEMY_TILE_OFFSET
+  STA SNES_OAM_START + 2, y
+
+  LDA SPRITE_LOOP_JUNK
+  ORA CURRENT_SPRITE_TABLE_OFFSET
+  STA SPRITE_LOOP_JUNK
+:	
+  LDA SPRITE_LOOP_JUNK
+  STA SNES_OAM_START + 3, y
 	; bra next_sprite
 
 	; empty_sprite:
@@ -236,8 +251,14 @@ sprite_loop:
 	BNE sprite_loop
 
   setAXY8
+  PLA
+  STA SPRITE_LOOP_JUNK
   STZ SNES_OAM_TRANSLATE_NEEDED
 	rtl
+
+dma_oam_table_long:
+  JSR dma_oam_table
+  RTL
 
 dma_oam_table:
   STZ OAMADDL
@@ -284,3 +305,73 @@ zero_oam:
   bne :-
   setAXY8
   RTS
+
+
+move_sprites_offscreen:
+  LDA #$f0
+  STA $0200
+  STA $0204
+  STA $0208
+  STA $020C
+  STA $0210
+  STA $0214
+  STA $0218
+  STA $021C
+  STA $0220
+  STA $0224
+  STA $0228
+  STA $022C
+  STA $0230
+  STA $0234
+  STA $0238
+  STA $023C
+  STA $0240
+  STA $0244
+  STA $0248
+  STA $024C
+  STA $0250
+  STA $0254
+  STA $0258
+  STA $025C
+  STA $0260
+  STA $0264
+  STA $0268
+  STA $026C
+  STA $0270
+  STA $0274
+  STA $0278
+  STA $027C
+  STA $0280
+  STA $0284
+  STA $0288
+  STA $028C
+  STA $0290
+  STA $0294
+  STA $0298
+  STA $029C
+  STA $02A0
+  STA $02A4
+  STA $02A8
+  STA $02AC
+  STA $02B0
+  STA $02B4
+  STA $02B8
+  STA $02BC
+  STA $02C0
+  STA $02C4
+  STA $02C8
+  STA $02CC
+  STA $02D0
+  STA $02D4
+  STA $02D8
+  STA $02DC
+  STA $02E0
+  STA $02E4
+  STA $02E8
+  STA $02EC
+  STA $02F0
+  STA $02F4
+  STA $02F8
+  STA $02FC
+
+  rtl
