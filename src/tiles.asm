@@ -312,63 +312,6 @@ new_data_bank:
   PLB
   RTL
 
-bankswitch_obj_chr_data:
-  ; this is a hack that happens to work most of the time.
-  PHB
-  LDA #$A0
-  PHA
-  PLB
-
-  LDY #$00
-: LDA CHR_BANK_LOADED_TABLE, y
-  CMP CHR_BANK_BANK_TO_LOAD
-  BEQ switch_to_y
-  CPY #$06
-  BEQ new_obj_bank
-  INY
-  INY
-  BRA :-
-
-new_obj_bank:
-  ; todo load the bank into 0000, 4000, or 6000
-  LDA INIDISP_STATE
-  ORA #$80
-  STA INIDISP
-
-  LDA CHR_BANK_BANK_TO_LOAD
-  TAY
-  LDA target_obj_banks, Y
-  STA CHR_BANK_TARGET_BANK
-  PHA
-  jslb load_chr_table_to_vm, $a0
-
-; sometimes there's additional logic.  for Super Dodgeball
-; banks 0a - 19 always loaded with 17
-;
-; this is between 0A and 19, so we load 17 too
-;   LDA #$17
-;   STA CHR_BANK_BANK_TO_LOAD
-;   LDA #$04
-;   STA CHR_BANK_TARGET_BANK
-;   jsl load_chr_table_to_vm
-
-; : 
-  LDA INIDISP_STATE
-  STA INIDISP
-  PLA
-  TAY
-  bra switch_to_y
-
-switch_to_y:
-  ; our target bank is loaded at #$y000
-  ; so just update our obj definition to use that for sprites
-  TYA
-  LSR ; for updating obsel, we have to halve y.  
-  STA OBSEL
-  PLB
-  RTL
-
-
 load_chr_table_to_vm:
   LDA CHR_BANK_TARGET_BANK
   TAY
@@ -382,34 +325,32 @@ load_chr_table_to_vm:
 
 ; sprite tile location table
 sprite_location_table:
-.byte <player_sprite_tiles,           >player_sprite_tiles,           ^player_sprite_tiles 
-.byte <roper_bolo_sprites,            >roper_bolo_sprites,            ^roper_bolo_sprites 
-.byte <linda_sprites,                 >linda_sprites,                 ^linda_sprites
-.byte <abobo_sprites,                 >abobo_sprites,                 ^abobo_sprites
-.byte <burnov_sprites_1,              >burnov_sprites_1,              ^burnov_sprites_1
-.byte <shadow_sprites,                >shadow_sprites,                ^shadow_sprites
-.byte <chin_sprites,                  >chin_sprites,                  ^chin_sprites
-.byte <william_sprites,               >william_sprites,               ^william_sprites
-
-.byte <burnov_sprites_2,              >burnov_sprites_2,              ^burnov_sprites_2 
-.byte <abore_sprites,                 >abore_sprites,                 ^abore_sprites 
-.byte <right_hand_sprites,            >right_hand_sprites,            ^right_hand_sprites 
-.byte <ninja_sprites,                 >ninja_sprites,                 ^ninja_sprites 
-.byte <mysterious_warrior_sprites,    >mysterious_warrior_sprites,    ^mysterious_warrior_sprites 
-.byte <misc_sprites,                  >misc_sprites,                  ^misc_sprites 
-.byte <title_screen_1,                >title_screen_1,                ^title_screen_1
-.byte <title_screen_2,                >title_screen_2,                ^title_screen_2
-
-.byte <mysterious_warrior_sprites_2,  >mysterious_warrior_sprites_2,  ^mysterious_warrior_sprites_2 
-.byte <burnov_sprites_3,              >burnov_sprites_3,              ^burnov_sprites_3 
-.byte <roper_grenade_sprites,         >roper_grenade_sprites,         ^roper_grenade_sprites 
+.byte <player_sprite_tiles,           >player_sprite_tiles,           ^player_sprite_tiles            ; 40
+.byte <roper_bolo_sprites,            >roper_bolo_sprites,            ^roper_bolo_sprites             ; 42
+.byte <linda_sprites,                 >linda_sprites,                 ^linda_sprites                  ; 44
+.byte <abobo_sprites,                 >abobo_sprites,                 ^abobo_sprites                  ; 46
+.byte <burnov_sprites_1,              >burnov_sprites_1,              ^burnov_sprites_1               ; 48    
+.byte <shadow_sprites,                >shadow_sprites,                ^shadow_sprites                 ; 4a  
+.byte <chin_sprites,                  >chin_sprites,                  ^chin_sprites                   ; 4c
+.byte <william_sprites,               >william_sprites,               ^william_sprites                ; 4e    
+                    ; 
+.byte <burnov_sprites_2,              >burnov_sprites_2,              ^burnov_sprites_2               ; 50      
+.byte <abore_sprites,                 >abore_sprites,                 ^abore_sprites                  ; 52  
+.byte <right_hand_sprites,            >right_hand_sprites,            ^right_hand_sprites             ; 54        
+.byte <ninja_sprites,                 >ninja_sprites,                 ^ninja_sprites                  ; 56  
+.byte <mysterious_warrior_sprites,    >mysterious_warrior_sprites,    ^mysterious_warrior_sprites     ; 58                
+.byte <misc_sprites,                  >misc_sprites,                  ^misc_sprites                   ; 5A  
+.byte <title_screen_1,                >title_screen_1,                ^title_screen_1                 ; 5C  
+.byte <title_screen_2,                >title_screen_2,                ^title_screen_2                 ; 5E  
+                    ; 
+.byte <mysterious_warrior_sprites_2,  >mysterious_warrior_sprites_2,  ^mysterious_warrior_sprites_2   ; 60                  
+.byte <burnov_sprites_3,              >burnov_sprites_3,              ^burnov_sprites_3               ; 62      
+.byte <roper_grenade_sprites,         >roper_grenade_sprites,         ^roper_grenade_sprites          ; 64          
 
 load_sprite_banks:
   PHB
   PHK
   PLB
-
-
 
   LDY #$00
   LDA SPRITE_LOADED_TABLE, Y
@@ -787,45 +728,74 @@ dma_chr_to_vm:
 
   RTS
 
-; todo update
-; which bank we should swap the sprite into, 00 - 0A aren't sprites so we set it to 0
-; we only use 00, 10, and 11 for sprite locations, which are 00, 04, and 06
-; if they're all the same it'll not save any time when swapping banks.
-target_obj_banks:
-.byte $00 ; 00 - Sprites
-.byte $00 ; 01 - Sprites
-.byte $00 ; 02 - Sprites
-.byte $00 ; 03 - Sprites
-.byte $00 ; 04 - Sprites
-.byte $00 ; 05 - Sprites
-.byte $00 ; 06 - Sprites
-.byte $00 ; 07 - Sprites
-.byte $00 ; 08 - Sprites
-.byte $00 ; 09 - Sprites
-.byte $00 ; 0A - Sprites
-.byte $00 ; 0B - Sprites
-.byte $04 ; 0C - Sprites
-.byte $06 ; 0D - Sprites / Letters
-.byte $06 ; 0E - Sprites / Letters
-.byte $06 ; 0F - Sprites / Letters
-.byte $00 ; 10 - BG Tiles
-.byte $00 ; 11 - BG Tiles
-.byte $00 ; 12 - BG Tiles
-.byte $00 ; 13 - BG Tiles
-.byte $00 ; 14 - BG Tiles
-.byte $00 ; 15 - BG Tiles
-.byte $00 ; 16 - BG Tiles
-.byte $00 ; 17 - BG Tiles
-.byte $00 ; 18 - BG Tiles
-.byte $00 ; 19 - BG Tiles
-.byte $00 ; 1A - BG Tiles
-.byte $00 ; 1B - BG Tiles
-.byte $00 ; 1C - BG Tiles
-.byte $00 ; 1D - BG Tiles
-.byte $00 ; 1E - BG Tiles
-.byte $00 ; 1F - BG Tiles
-.byte $00 ; 20 - intro bg tiles
-.byte $00 ; 21 - fancy intro tiles
-.byte $00 ; 22 - more fancy intro tiles
+
+level_load_hijack:
+  ; original code
+  LDA $0422
+
+  jsr load_sprite_sheets_for_area
+
+  ; original code
+  ASL
+  ASL
+  rtl
+
+load_sprite_sheets_for_area:
+  PHA
+  PHY
+  PHX
+  PHB
+  PHK
+  PLB
+  STZ CHR_BANK_TARGET_BANK
+
+  AND #$0F
+  ASL
+  ASL
+  ASL
+  ASL
+  TAY
+  LDX #$00
+
+: LDA double_dragon_ii_area_sprite_loads, Y
+  CMP #$FF
+  BEQ done
+  
+  STX CHR_BANK_TARGET_BANK
+  STX ACTIVE_SPRITE_SECOND_BANK_SLOT
+  
+  PHY
+  PHX
+  jslb load_mmc3_bank_to_slot, $a0
+  PLX
+  PLY
+
+  INY
+  INX
+  bra :-
 
 
+done:
+  PLB
+  PLX
+  PLY
+  PLA
+  rts
+
+double_dragon_ii_area_sprite_loads:
+.byte $40, $5A, $4E, $42, $44, $50, $62, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 00
+.byte $40, $5A, $42, $44, $4e, $54, $56, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 01
+.byte $40, $5A, $4e, $46, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 02
+.byte $40, $5A, $42, $44, $54, $52, $4e, $46, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 03
+.byte $40, $5A, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 04
+.byte $40, $5A, $44, $42, $64, $46, $4c, $54, $52, $ff, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 05
+.byte $40, $5A, $54, $4c, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 06
+.byte $40, $5A, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 07
+.byte $40, $5a, $54, $50, $62, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 08
+.byte $40, $5A, $ff, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 09
+.byte $40, $5A, $64, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 0A
+.byte $40, $5A, $4e, $64, $4c, $54, $52, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 0B
+.byte $40, $5A, $4c, $54, $52, $46, $56, $4a, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 0C
+.byte $40, $5A, $60, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 0D
+.byte $40, $5A, $58, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 0E
+.byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; invalid

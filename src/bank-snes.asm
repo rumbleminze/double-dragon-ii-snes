@@ -219,12 +219,9 @@ intro_done:
 
     jsr make_the_game_easier
     jslb update_values_for_ppu_mask, $a0
-    ; jslb simple_scrolling, $a0
     jslb infidelitys_scroll_handling, $a0
-    ; jslb setup_hdma, $a0
-    ; jslb handle_scroll_no_irq, $a0
-    ; jslb handle_scroll, $a0
     jslb calculate_hdma_l, $a0
+    
     LDA #$7E
     STA A1B3
     LDA #$09
