@@ -145,13 +145,96 @@ End:
     RTL
 
 
+store_a_to_register_y:
+  PHA
+  TYA
+  AND #$0F
+  TAY
+  PLA
+  CPY #$00
+  bne :+
+  jsr WriteAPUSq0Ctrl0
+  rtl
 
+: CPY #$01
+  bne :+
+  jsr WriteAPUSq0Ctrl1
+  rtl   
 
+: CPY #$02
+  bne :+
+  jsr WriteAPUSq0Ctrl2
+  rtl
 
+: CPY #$03
+  bne :+
+  jsr WriteAPUSq0Ctrl3
+  rtl
 
+: CPY #$04
+  bne :+
+  jsr WriteAPUSq1Ctrl0
+  rtl
+
+: CPY #$05
+  bne :+
+  jsr WriteAPUSq1Ctrl1
+  rtl   
+
+: CPY #$06
+  bne :+
+  jsr WriteAPUSq1Ctrl2
+  rtl
+
+: CPY #$07
+  bne :+
+  jsr WriteAPUSq1Ctrl3
+  rtl
+
+: CPY #$08
+  bne :+
+  jsr WriteAPUTriCtrl0
+  rtl
+
+: CPY #$09
+  bne :+
+  jsr WriteAPUTriCtrl1
+  rtl   
+
+: CPY #$0A
+  bne :+
+  jsr WriteAPUTriCtrl2
+  rtl
+
+: CPY #$0B
+  bne :+
+  jsr WriteAPUTriCtrl3
+  rtl
+
+: CPY #$0C
+  bne :+
+  jsr WriteAPUNoiseCtrl0
+  rtl
+
+: CPY #$0D
+  bne :+
+  jsr WriteAPUNoiseCtrl1
+  rtl   
+
+: CPY #$0E
+  bne :+
+  jsr WriteAPUNoiseCtrl2
+  rtl
+  
+: CPY #$0F
+  bne :+
+  jsr WriteAPUNoiseCtrl3
+  rtl 
+: BRK
+  rtl
 
 convert_audio:
-  jsl SnesUpdateAudio
+  jslb SnesUpdateAudio, $a0
   rtl 
 
   PHX

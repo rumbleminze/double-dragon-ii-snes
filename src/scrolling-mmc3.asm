@@ -16,8 +16,6 @@ calculate_hdma_l:
     rtl
 :
     jsr calculate_hdma
-    LDA #$FF
-    stA SCANLINE_FOR_IRQ
     rtl
 calculate_hdma:
     ; HUD is always last, so the two main cases are ATTR or IRQ first

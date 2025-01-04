@@ -221,7 +221,7 @@ intro_done:
     jslb update_values_for_ppu_mask, $a0
     jslb infidelitys_scroll_handling, $a0
     jslb calculate_hdma_l, $a0
-    
+
     LDA #$7E
     STA A1B3
     LDA #$09
@@ -263,6 +263,7 @@ audio_interrupt_1:
     PHA
     PLB
     JML [BANK_SWITCH_LB]
+
 return_from_sound:
     rtl
 

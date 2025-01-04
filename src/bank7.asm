@@ -1121,7 +1121,26 @@ nops 2
 
   jslb zero_all_palette_long, $a0
   rts
-  nops 25
+
+  @audio_hijack_8000:
+  JSR $8000
+  ; nops 4 
+  jslb convert_audio, $a0
+  rts
+
+  @audio_hijack_8006:
+  JSR $8006
+  nops 4 
+  ; jslb convert_audio, $a0
+  rts
+
+  @audio_hijack_8009:
+  JSR $8009
+  nops 4 
+  ; jslb convert_audio, $a0
+  rts
+
+  nops 1
 
 ; using some of these for returning from NMI
 @exit_from_nmi:
@@ -1895,16 +1914,89 @@ nops 2
 ; FC00 - bank 7
 .byte $50, $51, $31, $46, $C9, $46, $D0, $11, $A0, $48, $AD, $32, $04, $F0, $09, $A0
 .byte $47, $AD, $33, $04, $F0, $02, $A0, $46, $98, $60, $C1, $59, $04, $00, $44, $59
-.byte $8D, $FF, $07, $AD, $FF, $BF, $48, $A9, $05, $20, $1D, $FF, $20, $00, $80, $68
-.byte $20, $1D, $FF, $60, $AD, $FF, $BF, $48, $A9, $05, $20, $1D, $FF, $20, $03, $80
-.byte $4C, $2F, $FC, $AD, $FF, $BF, $48, $A9, $02, $20, $1D, $FF, $20, $00, $80, $4C
-.byte $2F, $FC, $AD, $FF, $BF, $48, $A9, $04, $20, $1D, $FF, $20, $03, $80, $4C, $2F
-.byte $FC, $AD, $FF, $BF, $48, $8A, $48, $A9, $04, $20, $1D, $FF, $68, $AA, $20, $06
-.byte $80, $4C, $2F, $FC, $AD, $FF, $BF, $48, $A9, $02, $20, $1D, $FF, $20, $03, $80
-.byte $4C, $2F, $FC, $AD, $FF, $BF, $48, $A9, $04, $20, $1D, $FF, $20, $00, $80, $4C
-.byte $2F, $FC, $AD, $FF, $BF, $48, $A9, $02, $20, $1D, $FF, $20, $06, $80, $4C, $2F
-.byte $FC, $AD, $FF, $BF, $48, $A9, $02, $20, $1D, $FF, $20, $09, $80, $4C, $2F, $FC
-.byte $AD, $FF, $BF, $48, $A9, $06, $20, $1D, $FF, $20, $B0, $AB, $4C, $2F, $FC, $70
+
+
+; fc20 - start of sound routines
+  STA $07FF
+  LDA $BFFF
+  PHA
+  LDA #$05
+  JSR $FF1D
+  JSR $8000
+  PLA
+  JSR $FF1D
+  RTS
+
+
+; sound routines
+  LDA $BFFF
+  PHA
+  LDA #$05
+  JSR $FF1D
+  JSR  @audio_hijack_8003 ; $8003
+  JMP $FC2F
+
+  LDA $BFFF
+  PHA
+  LDA #$02
+  JSR $FF1D
+  JSR @audio_hijack_8000
+  JMP $FC2F
+
+  LDA $BFFF
+  PHA
+  LDA #$04
+  JSR $FF1D
+  JSR @audio_hijack_8003
+  JMP $FC2F
+
+  LDA $BFFF
+  PHA
+  TXA
+  PHA
+  LDA #$04
+  JSR $FF1D
+  PLA
+  TAX
+  JSR @audio_hijack_8006
+  JMP $FC2F
+
+  LDA $BFFF
+  PHA
+  LDA #$02
+  JSR $FF1D
+  JSR @audio_hijack_8003
+  JMP $FC2F
+
+  LDA $BFFF
+  PHA
+  LDA #$04
+  JSR $FF1D
+  JSR @audio_hijack_8000
+  JMP $FC2F
+
+  LDA $BFFF
+  PHA
+  LDA #$02
+  JSR $FF1D
+  JSR @audio_hijack_8006
+  JMP $FC2F
+
+  LDA $BFFF
+  PHA
+  LDA #$02
+  JSR $FF1D
+  JSR @audio_hijack_8009
+  JMP $FC2F
+
+  LDA $BFFF
+  PHA
+  LDA #$06
+  JSR $FF1D
+  JSR $ABB0
+  JMP $FC2F
+
+.byte $70
 
 ; FCC0 - 
   PHA
@@ -2001,7 +2093,13 @@ nops 2
 ; NES OAM
 ; we handle this all ourselves
   RTS
-  nops 10
+
+  @audio_hijack_8003:
+  JSR $8003
+  nops 4
+  ; jslb convert_audio, $a0
+  rts
+  nops 2
 ;   LDA #$00
 ;   STA OamAddr_2003
 ;   LDA #$02
@@ -2048,8 +2146,10 @@ STA BG_CHR_BANK_SWITCH
 jslb swap_data_bg_chr, $a0
 rts
 
- nops 8
-
+ nops 3
+@audio_write_replacement:
+jslb store_a_to_register_y, $a0
+rts
 
 @check_for_attributes:
   LDA $04B1,X
@@ -2196,9 +2296,8 @@ rts
   jslb reset_nmi_status, $a0
 ; nops 4
   PLA
-
-
   RTS
+
   nops 6
 
 ;   PHA
