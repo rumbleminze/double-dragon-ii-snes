@@ -1,6 +1,6 @@
 .segment "SOUND_EMU"
 
-.DEFINE NesAPUEmulatorBinSize $2c02
+.DEFINE NesAPUEmulatorBinSize $2c53
 
 upload_sound_emulator_to_spc:
   PHP
@@ -62,7 +62,7 @@ upload_sound_emulator_to_spc:
 		sta APUIO0
   Spc700FwEnd:
 		lda #$01
-		sta APUInit
+		; sta APUInit
 		plb ; Restore the bank
     plp
   STZ $00

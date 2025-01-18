@@ -763,7 +763,7 @@ load_sprite_sheets_for_area:
   
   STX CHR_BANK_TARGET_BANK
   STX ACTIVE_SPRITE_SECOND_BANK_SLOT
-  
+
   PHY
   PHX
   jslb load_mmc3_bank_to_slot, $a0
@@ -789,13 +789,13 @@ double_dragon_ii_area_sprite_loads:
 .byte $40, $5A, $42, $44, $54, $52, $4e, $46, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 03
 .byte $40, $5A, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 04
 .byte $40, $5A, $44, $42, $64, $46, $4c, $54, $52, $ff, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 05
-.byte $40, $5A, $54, $4c, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 06
+.byte $40, $5A, $54, $4c, $44, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 06
 .byte $40, $5A, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 07
 .byte $40, $5a, $54, $50, $62, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 08
 .byte $40, $5A, $ff, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 09
 .byte $40, $5A, $64, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 0A
 .byte $40, $5A, $4e, $64, $4c, $54, $52, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 0B
-.byte $40, $5A, $4c, $54, $52, $46, $56, $4a, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 0C
+.byte $40, $5A, $4c, $54, $52, $46, $56, $4a, $44, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 0C
 .byte $40, $5A, $60, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 0D
 .byte $40, $5A, $58, $ff, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; Area 0E
 .byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF  ; invalid

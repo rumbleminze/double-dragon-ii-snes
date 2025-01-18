@@ -1,7 +1,7 @@
 augment_input:
 
     ; origingal code
-    LDX $FB
+    LDX $e5
     INX
     STX JOYSER0
     DEX
@@ -9,26 +9,31 @@ augment_input:
     LDX #$08
 :   LDA JOYSER0
     LSR
-    ROL $F5
+    ROL $e0
     LSR
-    ROL $00
+    ROL $04
     LDA JOYSER1
     LSR
-    ROL $F6
+    ROL $e1
     LSR
-    ROL $01
+    ROL $05
     DEX
     BNE :-
-
-    ; example from Double Dragon
     ; we also ready the next bit, which is the SNES "A" button
     ; and if it's on, treat it as if they've hit both Y and B
-    ; lda JOYSER0
-    ; AND #$01
-    ; BEQ :+
-    ; LDA $00
-    ; ORA #$C0
-    ; STA $00
+    lda JOYSER0
+    AND #$01
+    BEQ :+
+    LDA $04
+    ORA #$C0
+    STA $04
+
+:   lda JOYSER1
+    AND #$01
+    BEQ :+
+    LDA $05
+    ORA #$C0
+    STA $05
 
     ; X
     ; lda JOYSER0
@@ -38,6 +43,7 @@ augment_input:
     
 
     ; this checks for the komani code by looking at where the game stores input.
-; :   jsr check_for_code_input_from_ram_values
+ :   
+    jsr check_for_code_input_from_ram_values
 
     RTL

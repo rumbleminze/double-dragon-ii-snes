@@ -1,12 +1,12 @@
 
 check_for_palette_updates:
   PHA
-  LDA PALETTE_UPDATE_START - 1
+  LDA PALETTE_NEEDS_UPDATING
   BNE :+
   PLA
   rtl
 : pla
-  stz PALETTE_UPDATE_START - 1
+  stz PALETTE_NEEDS_UPDATING
 
 write_palette_data:
   PHX
@@ -28,6 +28,7 @@ write_palette_data:
 palette_entry:
 
   LDA PALETTE_UPDATE_START, Y
+  AND PALETTE_FILTER
   ASL A
   TAX
   LDA palette_lookup, X
@@ -36,6 +37,7 @@ palette_entry:
   STA CGDATA
 
   LDA PALETTE_UPDATE_START + 1, Y
+  AND PALETTE_FILTER
   ASL A
   TAX 
   LDA palette_lookup, X
@@ -44,6 +46,7 @@ palette_entry:
   STA CGDATA
 
   LDA PALETTE_UPDATE_START + 2, Y
+  AND PALETTE_FILTER
   ASL A
   TAX 
   LDA palette_lookup, X
@@ -52,6 +55,7 @@ palette_entry:
   STA CGDATA
 
   LDA PALETTE_UPDATE_START + 3, Y
+  AND PALETTE_FILTER
   ASL A
   TAX 
   LDA palette_lookup, X
@@ -100,6 +104,9 @@ skip_writing_four_empties:
   ; done after $20
   RTL
   
+
+
+
 zero_all_palette_long:
   jsr zero_all_palette
   rtl

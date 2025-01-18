@@ -339,6 +339,22 @@ update_ppu_mask_and_store:
     RTL
 
 update_values_for_ppu_mask:
+    LDA PPU_MASK_STATE
+    AND #$01
+    beq :+
+      ; Set to B&W
+      LDA #$30
+      STA PALETTE_FILTER
+      LDA #$01
+      STA PALETTE_NEEDS_UPDATING
+      BRA :++
+    : LDA PALETTE_FILTER
+      BEQ :+
+      LDA #$FF
+      STA PALETTE_FILTER
+      LDA #$01
+      STA PALETTE_NEEDS_UPDATING
+    :
     STZ TM_STATE
     ; we only care about bits 10 (sprites and 08 bg)
     LDA PPU_MASK_STATE
@@ -367,6 +383,7 @@ update_values_for_ppu_mask:
     LDA #$0F
     STA INIDISP
     RTL
+
 :   jslb force_blank_and_store, $a0
     RTL
 

@@ -336,6 +336,28 @@ WriteAPUControl:
     xba
     rts
 
+WriteAPUDMCCounter:
+    stx APUBase+$11 ; DmcCounter_4011
+rts
+
+WriteAPUDMCFreq:
+    sta APUBase+$10; DmcFreq_4010
+rts
+
+WriteAPUDMCAddr:
+    sta APUBase+$12; DmcAddress_4012
+rts
+
+WriteAPUDMCLength:
+    sta APUBase+$13; DmcLength_4013
+rts
+
+WriteAPUDMCPlay:
+    sta  APUBase+$15;ApuStatus_4015
+    and #%00010000
+    sta APUExtraControl
+rts
+
 Sound__EmulateLengthCounter_length_d3_mixed:
 .byte $06,$06,$06,$06,$06,$06,$06,$06,$80,$80,$80,$80,$80,$80,$80,$80
 .byte $0B,$0B,$0B,$0B,$0B,$0B,$0B,$0B,$02,$02,$02,$02,$02,$02,$02,$02

@@ -437,7 +437,12 @@
 .byte $A0, $05, $B1, $29, $8D, $9C, $04, $C8, $B1, $29, $8D, $9D, $04, $C8, $B1, $29
 .byte $8D, $9E, $04, $C8, $B1, $29, $8D, $9F, $04, $A0, $00, $B1, $29, $48, $C8, $B1
 .byte $29, $85, $2A, $68, $85, $29, $A9, $20, $85, $2C, $A9, $00, $85, $2B, $85, $19
-.byte $20, $C6, $CD, $20, $B4, $FE, $68, $20, $1D, $FF, $20, $ED, $FE, $A9, $FF, $8D
+
+; hijacked
+  ; JSR $CDC6
+  JSR @cdc6_hijack
+
+.byte $20, $B4, $FE, $68, $20, $1D, $FF, $20, $ED, $FE, $A9, $FF, $8D
 .byte $40, $06, $A9, $80, $8D, $3F, $06, $20, $C0, $FC, $A5, $E8, $09, $18, $85, $E8
 .byte $A9, $80, $8D, $B1, $05, $60, $20, $AF, $CE, $A5, $1A, $D0, $45, $20, $AF, $CE
 .byte $A5, $1A, $D0, $01, $60, $29, $F0, $C9, $20, $D0, $0F, $A5, $1A, $85, $2C, $20
@@ -840,8 +845,13 @@
   jslb move_sprites_offscreen, $a0
   RTS
 
+; hijack of cdc6 so we can update attributes after it
+@cdc6_hijack:
+  jsr $CDC6
+  jslb double_dragon_2_full_attribute_write, $a0
+  rts
 
-  nops 14
+  nops 6
 
 
 ; D851 - zero out VRAM
@@ -1124,8 +1134,8 @@ nops 2
 
   @audio_hijack_8000:
   JSR $8000
-  ; nops 4 
-  jslb convert_audio, $a0
+  nops 4 
+  ; jslb convert_audio, $a0
   rts
 
   @audio_hijack_8006:
@@ -1605,11 +1615,22 @@ nops 2
 .byte $20, $38, $F6, $20, $F7, $FC, $20, $BC, $F5, $A9, $00, $85, $FC, $85, $FD, $A9
 .byte $60, $A0, $80, $D0, $02, $A9, $30, $8D, $A5, $04, $A9, $80, $85, $EC, $A9, $00
 .byte $85, $F0, $20, $9C, $FE, $20, $91, $FB, $20, $10, $F1, $20, $91, $FB, $20, $10
-.byte $F1, $20, $91, $FB, $20, $10, $F1, $CE, $A5, $04, $D0, $E9, $A5, $FD, $C9, $FF
+.byte $F1, $20, $91, $FB, $20, $10, $F1, $CE, $A5, $04, $D0, $E9
 
+; continue code input check
+; screw codes, we'll let people continue
+  LDA $FD
+  CMP #$FF
+  BRA :+  ; BEQ :+
+  LDA #$80
+  BEQ :+
+  LDA $35
+  AND #$BF
+  STA $35
+: JSR $F5DC
+  RTS
 
-; F100 - bank 7
-.byte $F0, $0A, $A9, $80, $F0, $06, $A5, $35, $29, $BF, $85, $35, $20, $DC, $F5, $60
+; F110 - bank 7
 .byte $A9, $80, $F0, $37, $A5, $35, $29, $40, $F0, $31, $A5, $FC, $C9, $FF, $F0, $2B
 .byte $A5, $E0, $05, $E1, $F0, $25, $20, $4C, $F1, $B1, $29, $C5, $E0, $D0, $18, $C8
 .byte $B1, $29, $C5, $E1, $D0, $11, $E6, $FC, $20, $4C, $F1, $B1, $29, $C8, $31, $29
@@ -1649,7 +1670,12 @@ nops 2
 ; F300 - bank 7
 .byte $20, $20, $FC, $20, $7B, $FD, $20, $A8, $FE, $20, $75, $D8, $20, $14, $E2, $20
 .byte $80, $F6, $A9, $04, $20, $9B, $F6, $A9, $11, $8D, $90, $04, $A9, $30, $8D, $8F
-.byte $04, $A9, $AA, $20, $80, $F4, $20, $38, $F6, $20, $9B, $F3, $20, $C0, $FC, $20
+.byte $04
+
+; set palette for continue screen, we "fix" this
+   LDA #$00 ; #$AA 
+
+.byte $20, $80, $F4, $20, $38, $F6, $20, $9B, $F3, $20, $C0, $FC, $20
 .byte $F7, $FC, $20, $BC, $F5, $A9, $01, $20, $20, $FC, $A9, $80, $85, $EC, $A9, $00
 .byte $85, $F0, $20, $9C, $FE, $A9, $00, $85, $F1, $EE, $A5, $04, $20, $23, $EE, $A5
 .byte $E0, $29, $10, $F0, $F0, $20, $A8, $FE, $A9, $FC, $20, $20, $FC, $20, $DC, $F5
@@ -1658,16 +1684,36 @@ nops 2
 .byte $4C, $92, $F3, $4A, $90, $14, $A5, $35, $29, $40, $D0, $0E, $A5, $35, $09, $40
 .byte $85, $35, $20, $9B, $F3, $A9, $49, $20, $20, $FC, $60, $A2, $00, $A0, $00, $A5
 .byte $35, $29, $40, $F0, $02, $A0, $01, $20, $B3, $F3, $E8, $98, $49, $01, $A8, $20
-.byte $B3, $F3, $60, $8A, $0A, $AA, $AD, $02, $20, $BD, $D8, $F3, $8D, $06, $20, $BD
-.byte $D7, $F3, $8D, $06, $20, $A9, $80, $F0, $07, $B9, $DB, $F3, $8D, $07, $20, $60
-.byte $B9, $DD, $F3, $8D, $07, $20, $60, $0A, $21, $8A, $21, $00, $FF, $00, $FC, $A5
+.byte $B3, $F3, $60
+
+  TXA
+  ASL A
+  TAX
+  LDA RDNMI ; PpuStatus_2002
+  LDA $F3D8,X
+  STA VMADDH ; PpuAddr_2006
+  LDA $F3D7,X
+  STA VMADDL ; PpuAddr_2006
+  LDA #$80
+  BEQ :+
+  LDA $F3DB,Y
+  STA VMDATAL ; PpuData_2007
+  RTS
+:
+  LDA $F3DD,Y
+  STA VMDATAL ; PpuData_2007
+  RTS
+
+.byte  $0A, $21, $8A, $21, $00, $FF, $00, $FC, $A5
 .byte $35, $09, $20, $85, $35, $A9, $00, $20, $20, $FC, $20, $7B, $FD, $20, $A8, $FE
 .byte $20, $75, $D8, $20, $14, $E2, $20, $80, $F6, $A0, $01, $A9, $80, $D0, $02, $A0
 
 
 ; F400 - bank 7
-.byte $00, $98, $20, $9B, $F6, $A9, $11, $8D, $90, $04, $A9, $30, $8D, $8F, $04, $A9
-.byte $AA, $20, $80, $F4, $20, $38, $F6, $20, $C0, $FC, $20, $F7, $FC, $20, $BC, $F5
+.byte $00, $98, $20, $9B, $F6, $A9, $11, $8D, $90, $04, $A9, $30, $8D, $8F, $04
+;  set palette for menu
+LDA #$00 ; LDA #$AA
+.byte $20, $80, $F4, $20, $38, $F6, $20, $C0, $FC, $20, $F7, $FC, $20, $BC, $F5
 .byte $A9, $01, $20, $20, $FC, $A9, $80, $85, $EC, $A9, $00, $85, $F0, $20, $9C, $FE
 .byte $A9, $00, $85, $F1, $EE, $A5, $04, $A5, $34, $29, $BF, $85, $34, $AE, $34, $04
 .byte $A5, $34, $29, $3F, $1D, $7D, $F4, $85, $34, $20, $23, $EE, $A5, $E0, $29, $10
@@ -1917,7 +1963,10 @@ nops 2
 
 
 ; fc20 - start of sound routines
-  STA $07FF
+; play sound/music in A
+  ; STA $07FF
+  
+  jsr @play_audio_hijack
   LDA $BFFF
   PHA
   LDA #$05
@@ -1933,7 +1982,7 @@ nops 2
   PHA
   LDA #$05
   JSR $FF1D
-  JSR  @audio_hijack_8003 ; $8003
+  JSR @audio_hijack_8003 ; $8003
   JMP $FC2F
 
   LDA $BFFF
@@ -2078,12 +2127,34 @@ nops 2
 .byte $A5, $E1, $48, $20, $E0, $FD, $20, $02, $FE, $68, $C5, $E1, $D0, $F0, $C4, $E0
 .byte $D0, $EC, $F0, $BD, $20, $E0, $FD, $A5, $04, $85, $E2, $A5, $05, $85, $E3, $A2
 .byte $03, $B5, $E0, $A8, $55, $DC, $35, $E0, $95, $E0, $94, $DC, $CA, $10, $F2, $60
-.byte $A6, $E5, $E8, $8E, $16, $40, $CA, $8E, $16, $40, $A2, $08, $AD, $16, $40, $4A
-.byte $26, $E0, $4A, $26, $04, $AD, $17, $40, $4A, $26, $E1, $4A, $26, $05, $CA, $D0
+
+
+; FDE0 - input reading
+;   LDX $E5
+;   INX
+;   STX Ctrl1_4016
+;   DEX
+;   STX Ctrl1_4016
+;   LDX #$08
+; : LDA Ctrl1_4016
+;   LSR A
+;   ROL $E0
+;   LSR A
+;   ROL $04
+;   LDA Ctrl2_FrameCtr_4017
+;   LSR A
+;   ROL $E1
+;   LSR A
+;   ROL $05
+;   DEX
+;   BNE :-
+  jslb augment_input, $a0
+  RTS
+  nops 29
 
 
 ; FE00 - bank 7
-.byte $EB, $60, $A5, $04, $05, $E0, $85, $E0, $A5, $05, $05, $E1, $85, $E1, $60, $A9
+.byte $A5, $04, $05, $E0, $85, $E0, $A5, $05, $05, $E1, $85, $E1, $60, $A9
 .byte $15, $A2, $14, $A0, $16, $86, $04, $D6, $04, $10, $05, $A9, $09, $95, $04, $98
 .byte $AA, $B5, $04, $F0, $02, $D6, $04, $CA, $E4, $04, $D0, $F5, $60, $8A, $48, $98
 .byte $48, $A2, $17, $A0, $02, $B5, $00, $29, $02, $85, $04, $B5, $01, $29, $02, $45
@@ -2298,7 +2369,10 @@ rts
   PLA
   RTS
 
-  nops 6
+  nops 1
+@play_audio_hijack:
+  jslb play_track_hijack, $b2
+  rts
 
 ;   PHA
 ;   TXA

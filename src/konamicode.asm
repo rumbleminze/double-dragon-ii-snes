@@ -25,28 +25,21 @@ code_values:
 .byte $FF
 
 
-check_for_code_input:
-PHA
-readjoy:
-    lda #$01
-    STA JOYSER0
-    STA buttons
-    LSR A
-    sta JOYSER0
-loop:
-    lda JOYSER0
-    lsr a
-    rol buttons
-    bcc loop
-
-    lda buttons
+check_for_code_input_from_ram_values:
+    PHA
+    PHB
+    LDA $e0         ; this is the games p1 trigger value
     ldy JOYPAD1
     sta JOYPAD1
     tya
     eor JOYPAD1
     and JOYPAD1
     sta JOYTRIGGER1
-    beq :++ 
+    BEQ :++
+    
+    LDA #$A0
+    PHA
+    PLB
 
     tya
     and JOYPAD1
@@ -69,24 +62,24 @@ loop:
     jsr code_effect
 
 :   
+    PLB
     PLA
     rts
 
+
 code_effect:
-    LDA RDNMI
-    : LDA RDNMI
-    BEQ :-
 
-    AND #$80
-    STZ CGADD    
-    LDA #$00
-    STA CGDATA
-    STA CGDATA
+    LDA #$7F
+    STA P1_HEALTH
 
-    LDA #$D6
-    STA CGDATA
-    LDA #$10
-    STA CGDATA
-
-    INC KONAMI_CODE_ENABLED
-    rts
+    LDA #10
+    STA P1_LIVES
+    
+    LDA NUM_PLAYERS
+    beq :+
+        LDA #$7F
+        STA P2_HEALTH
+            
+        LDA #10
+        STA P2_LIVES
+:   rts

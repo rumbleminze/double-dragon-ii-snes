@@ -4,7 +4,13 @@ intro_screen_data:
 .byte $2b, $2e, $26, $1b, $25, $1e, $26, $22, $27, $33, $1e, $00        ; Rumbleminze, 
 .byte $12, $10, $12, $14, $ff                                           ; 2024
 
-.byte $01, $23, $12, $1a, $10, $13, $00                                 ; 2A03
+; MSU1 Arrangements By Batty
+.byte $82, $22, $26, $2c, $2e, $11, $34
+.byte $1a, $2b, $2b, $1a, $27, $20, $1e, $26, $1e, $27, $2d, $2c, $34
+.byte $1b, $32, $34
+.byte $1b, $1a, $2d, $2d, $32, $ff
+
+.byte $e1, $22, $12, $1a, $10, $13, $00                                 ; 2A03
 .byte $2c, $28, $2e, $27, $1d, $00                                      ; SOUND 
 .byte $1e, $26, $2e, $25, $1a, $2d, $28, $2b, $00                       ; EMULATOR
 .byte $1b, $32, $00                                                     ; BY
@@ -158,34 +164,50 @@ exit_intro_write:
     RTS
 
 do_intro:
+  JSR clearvm_to_12
+  jsr zero_oam
+      JSR dma_oam_table
+
     JSR load_intro_tilesets
     JSR write_intro_palette
     JSR write_default_palettes
     JSR write_intro_tiles
     ; JSR write_intro_sprites
 
+    jsr check_for_msu
+
     LDA #$0F
     STA INIDISP
     LDX #$FF
 
-
 :
-    jsr check_for_code_input
+    jsl augment_input
     jsr check_for_sprite_swap
-    ; jsr check_for_msu
 
     ; check for "start"
     LDA JOYTRIGGER1
     AND #$10
-    CMP #$10
-    BNE :-
+    BNE :+
 
+    LDA JOYTRIGGER1
+    AND #$20
+    BEQ :-
+    LDA MSU_AVAILABLE
+    BEQ :-
+        jsr show_msu_track_screen
+        jmp do_intro
+    BRA :-
+
+:
     LDA INIDISP_STATE
     ORA #$8F
     STA INIDISP_STATE
     STA INIDISP
 
     RTS
+
+
+
 
 sprite_swap_table:
 ;      oamo    m?  OAM1/2
@@ -281,24 +303,45 @@ check_for_sprite_swap:
     JSR dma_oam_table
     rts
 
-; check_for_msu:
-;     LDA JOYTRIGGER1
-;     AND #$01
-;     CMP #$01
-;     BEQ :+
-;     LDA JOYTRIGGER1
-;     AND #$02
-;     CMP #$02
-;     BNE :-
-; :   LDA MSU_SELECTED
-;     EOR #$01
-;     STA MSU_SELECTED
+check_for_msu:
+    LDA MSU_AVAILABLE
+    BEQ :++
 
-;     LDA SNES_OAM_START + (4*9 - 1)
-;     EOR #$40
-;     STA SNES_OAM_START + (4*9 - 1)
-;     JSR dma_oam_table
-;     RTS
+    ; msu is available 
+    LDY #$00
+
+    ; get starting address
+    LDA msu_info, Y
+    PHA
+    INY
+    LDA msu_info, Y
+    STA VMADDH
+    PLA
+    STA VMADDL
+    INY
+
+:
+    LDA msu_info, Y
+    INY
+
+    CMP #$FF
+    BEQ :+
+
+    STA VMDATAL
+    BRA :-
+
+    :
+
+    rts
+
+msu_info:
+    .addr $2321
+    .byte $29, $2b, $1e, $2c, $2c, $34
+    .byte $2c, $1e, $25, $1e, $1c, $2d, $34
+    .byte $1f, $28, $2b, $34
+    .byte $26, $2c, $2e, $11, $34
+    .byte $28, $29, $2d, $22, $28, $27, $2c 
+    .byte $FF
 
 ; if a sprite wants to be on the intro screen,
 ; can put the data here    
@@ -411,3 +454,5 @@ load_intro_tilesets:
 
 
     rts
+
+.include "msu_track_selection_screen.asm"

@@ -87,12 +87,14 @@ convert_attributes2_inf:
   PLB
   LDX #$00
   JSR disable_attribute_hdma
-  LDA #<(ATTR_NES_VM_ADDR_HB) ; #$A1
+  LDA #<(ATTR2_NES_VM_ADDR_HB) ; #$D1
   STA ATTR_WORK_BYTE_0
-  LDA #>(ATTR_NES_VM_ADDR_HB) ; #$09
+  LDA #>(ATTR2_NES_VM_ADDR_HB) ; #$09
   STA ATTR_WORK_BYTE_1
+
   STZ ATTR2_DMA_SRC_LB
   STZ ATTR2_DMA_SRC_LB + 1
+
   LDA #>(ATTRIBUTE2_CACHE) ; #$1A
   STA ATTR2_DMA_SRC_HB
   ; LDA #>(ATTRIBUTE2_CACHE)
@@ -102,7 +104,7 @@ convert_attributes2_inf:
 inf2_9497:
   LDA (ATTR_WORK_BYTE_0),Y ; $00.w is $09A1 to start
   ; early rtl  
-  STZ ATTR_NES_HAS_VALUES
+  STZ ATTR2_NES_HAS_VALUES
   BEQ early_rts_from_attribute2_copy
   AND #$03
   CMP #$03
@@ -199,7 +201,7 @@ inf2_9497:
   INY
   INY
   TYX
-  LDA #$A0
+  LDA #$D0
   sta ATTR_WORK_BYTE_0
   TYA
   CLC
@@ -286,7 +288,7 @@ inf2_952D:
   LDA (ATTR_WORK_BYTE_0,X)
   BNE inf2_95b9
 
-  STZ ATTR_NES_HAS_VALUES
+  STZ ATTR2_NES_HAS_VALUES
   LDA #$FF
   STA ATTRIBUTE2_DMA
   RTS

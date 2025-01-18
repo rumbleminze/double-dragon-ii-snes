@@ -6,7 +6,7 @@
 .include "vars.inc"
 .include "2a03_variables.inc"
 .include "wram_routines.asm"
-.include "2a03_emu_upload.asm"
+; .include "2a03_emu_upload.asm"
 .include "hiromheader.asm"
 
 .segment "CODE"
@@ -44,8 +44,8 @@
 .include "chrom-basic-intro-tiles.asm"
 
 
-.if ENABLE_MSU = 1
-    .include "msu.asm"
-    .include "chrom-tiles-msu-intro.asm"
-    .include "msu_video_player.asm"
-.endif
+.include "msu.asm"
+; .include "chrom-tiles-msu-intro.asm"
+; .include "msu_video_player.asm"
+
+.include "dpcm_audio.asm"

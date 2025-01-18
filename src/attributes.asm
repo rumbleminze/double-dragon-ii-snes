@@ -5,15 +5,100 @@
 ; this needs to be 2 bytes on the ZP that ideally isn't used.
 .define ZP_ADDR_USAGE $50
 
+; this routine is used for writing 
+; data during full screen scenes
+double_dragon_2_full_attribute_write:
+  ; all the attributes will have been written to 
+  ; 5BD - 5FC
+  PHA
+  PHY
+  PHX
+
+  LDY #$00
+
+: LDA $5BD, Y
+  STA ATTR_NES_VM_ATTR_START, y
+  INY
+  CPY #$20
+  BNE :-
+
+  LDA #$23
+  STA ATTR_NES_VM_ADDR_HB
+  LDA #$C0
+  STA ATTR_NES_VM_ADDR_LB
+  LDA #$20
+  STA ATTR_NES_VM_COUNT
+  LDA #$01
+  STA ATTR_NES_HAS_VALUES
+  LDY #$00
+
+: 
+  LDA $5DD, Y
+  STA ATTR2_NES_VM_ATTR_START, y
+  INY
+  CPY #$20
+  BNE :-
+
+  LDA #$23
+  STA ATTR2_NES_VM_ADDR_HB
+  LDA #$E0
+  STA ATTR2_NES_VM_ADDR_LB
+  LDA #$20
+  STA ATTR2_NES_VM_COUNT
+  LDA #$01
+  STA ATTR2_NES_HAS_VALUES
+
+  jslb convert_nes_attributes_and_immediately_dma_them, $a0
+
+  PLX
+  PLY
+  PLA
+rtl
+
+
 
 double_dragon_2_attribute_routine:
   ; do attribute stuff
   PHX
   PHY
 
+  lda ATTR_NES_HAS_VALUES
+  bne :+
+    jsr store_attributes_to_cache1
+    bra :+++
+  : 
+    ; sometimes (usually when fblank is on anyway)
+    ; we haven't written these yet, if so, convert and send them
+    lda ATTR2_NES_HAS_VALUES
+    beq :+
+      jslb convert_nes_attributes_and_immediately_dma_them, $a0
+      PLY
+      plx
+      jmp double_dragon_2_attribute_routine
+    :
+    jsr store_attributes_to_cache2
+  :
+  
+  ; JSR check_and_copy_nes_attributes_to_buffer
+
+  ; post routine simulation
+  PLY
+  PLX
+  TXA
+  CLC
+  ADC #$24
+  STA $05BB
+  CMP $05BC
+  BEQ handle_attributes_done
+  TAX
+  
+  rtl
+
+store_attributes_to_cache1:
   LDA $04B1,X
   INX
   jslb convert_a_to_vmaddh_range, $a0
+
   STA ATTR_NES_VM_ADDR_HB
   LDA $04B1,x
   INX
@@ -35,21 +120,35 @@ double_dragon_2_attribute_routine:
   INY
   CPY #$20
   BNE :-
+  rts
 
-  JSR check_and_copy_nes_attributes_to_buffer
-
-  ; post routine simulation
-  PLY
-  PLX
-  TXA
-  CLC
-  ADC #$24
-  STA $05BB
-  CMP $05BC
-  BEQ handle_attributes_done
-  TAX
+store_attributes_to_cache2:
+  LDA $04B1,X
+  INX
+  jslb convert_a_to_vmaddh_range, $a0
   
-  rtl
+  STA ATTR2_NES_VM_ADDR_HB
+  LDA $04B1,x
+  INX
+
+  STA ATTR2_NES_VM_ADDR_LB
+  LDA #$20
+  INX
+  INX 
+
+  STA ATTR2_NES_VM_COUNT
+  LDA #$01
+
+  STA ATTR2_NES_HAS_VALUES
+
+  LDY #$00
+: LDA $04B1, X
+  INX
+  STA ATTR2_NES_VM_ATTR_START, y
+  INY
+  CPY #$20
+  BNE :-
+  rts
 
 handle_attributes_done:
   ; if the last attribute would make
@@ -270,9 +369,6 @@ convert_nes_attributes_and_immediately_dma_them:
 
 ; converts attributes stored at 9A0 - A07 to attribute cache
 check_and_copy_nes_attributes_to_buffer:
-  LDA ATTR_NES_HAS_VALUES
-  BEQ early_rts_from_attribute_copy
-
   LDA ATTR_WORK_BYTE_0
   PHA
   LDA ATTR_WORK_BYTE_1
@@ -282,24 +378,25 @@ check_and_copy_nes_attributes_to_buffer:
   LDA ATTR_WORK_BYTE_3 
   PHA
 
-  LDA WHICH_ATTR_TO_USE_NEXT
-  BNE :++
-  INC WHICH_ATTR_TO_USE_NEXT
-  LDA ATTRIBUTE_DMA
-  beq :+
-    jsr copy_prepped_attributes_to_vram
-  :
-  JSR convert_attributes_inf
-  bra early_rts_from_attribute_copy
-: 
-  STZ WHICH_ATTR_TO_USE_NEXT
-  LDA ATTRIBUTE2_DMA
-  beq :+
-    jsr copy_prepped_attributes2_to_vram
-  :
-  JSR convert_attributes2_inf
 
-early_rts_from_attribute_copy:
+  LDA ATTR_NES_HAS_VALUES
+  BEQ :++
+    LDA ATTRIBUTE_DMA
+    beq :+
+      jsr copy_prepped_attributes_to_vram
+    :
+    jsr convert_attributes_inf
+  :
+
+  LDA ATTR2_NES_HAS_VALUES
+  BEQ :++
+    LDA ATTRIBUTE2_DMA
+    beq :+
+      jsr copy_prepped_attributes2_to_vram
+    :
+    JSR convert_attributes2_inf
+  :
+
   pla
   sta ATTR_WORK_BYTE_3
   pla
@@ -309,6 +406,7 @@ early_rts_from_attribute_copy:
   pla 
   sta ATTR_WORK_BYTE_0
 
+do_nothing:
   RTS
   
 convert_attributes_inf:
@@ -320,10 +418,12 @@ convert_attributes_inf:
   STA ATTR_WORK_BYTE_0
   LDA #>(ATTR_NES_VM_ADDR_HB) ; #$09
   STA ATTR_WORK_BYTE_1
+
   STZ ATTR_DMA_SRC_LB
   STZ ATTR_DMA_SRC_LB + 1
   LDA #>(ATTRIBUTE_CACHE) ; #$18
   STA ATTR_DMA_SRC_HB
+
   LDA #$1A
   STA ATTR_DMA_SRC_HB + 1
   LDY #$00  
@@ -331,7 +431,7 @@ inf_9497:
   LDA (ATTR_WORK_BYTE_0),Y ; $00.w is $09A1 to start
   ; early rtl  
   STZ ATTR_NES_HAS_VALUES
-  BEQ early_rts_from_attribute_copy
+  BEQ do_nothing
   AND #$03
   CMP #$03
   BEQ :+
@@ -581,191 +681,6 @@ inf_9720:
   PLA
   sta ATTR_WORK_BYTE_2
   JMP inf_9497
-
-
-check_and_copy_column_attributes_to_buffer:
-  LDA COL_ATTR_HAS_VALUES
-  BEQ :+
-  JSR convert_column_of_tiles
-: RTS
-
-convert_column_of_tiles:
-  LDA COL_ATTR_VM_HB
-  ; early rtl
-  BNE :+
-  RTS
-: LDA COL_ATTR_VM_LB
-  AND #$F0
-  CMP #$C0
-  BEQ :+
-  CMP #$D0
-  BEQ :+
-  CMP #$E0
-  BEQ :+
-  CMP #$F0
-  BEQ :+
-  RTS
-: 
-  LDA COL_ATTR_VM_LB
-  AND #$0F
-  ASL A
-  ASL a
-
-  STA C1_ATTR_DMA_VMADDL
-  LDA COL_ATTR_VM_HB
-  AND #$24
-  STA C1_ATTR_DMA_VMADDH
-
-  LDA #$20
-  STA C1_ATTR_DMA_SIZE_LB
-  STZ C1_ATTR_DMA_SIZE_HB
-
-  LDY #$00
-  LDX #$00
-: LDA COL_ATTR_VM_START, Y
-
-  ; convert magic!
-  ; each attribute value gives us 4 attribute values
-  ; in a grid of:
-  ; 
-  ; A A B B
-  ; A A B B
-  ; C C D D
-  ; C C D D
-  ;
-  ; we'll store them in 4 batches to be DMA'd
-  ; and store them in columns, but as rows, get it?
-  ; 
-  ; column1:  A A C C
-  ; column2:  A A C C
-  ; column3:  B B D D
-  ; column4:  B B D D
-
-  ; magic convert
-  ; NES attribues will be in 1 byte, for the above description in this way:
-  ; 0xDDCCBBAA
-  ; The only thing we care about with Kid icarus is the palette
-  ; 
-  ; palattes for SNES are put in bits 4, 8 & 16 of the high byte:
-  ; we're only useing 4 palattes, so we'll shift things to byte 4, 8 of the low nibble
-  ; ___0 00___
-
-  ; get A (TL)
-  AND #$03
-  ASL
-  ASL
-  STA C1_ATTRIBUTE_CACHE, X
-  STA C1_ATTRIBUTE_CACHE + 1, X
-  ; store in UR and LR row
-  STA C1_ATTRIBUTE_CACHE + ATTR_WORK_BYTE_0, X
-  STA C1_ATTRIBUTE_CACHE + ATTR_WORK_BYTE_1, X
-
-  ; get B (TR), write them as dma lines 3 and 4.
-  LDA COL_ATTR_VM_START, Y
-  CLC
-  AND #$0C
-  STA C1_ATTRIBUTE_CACHE + $40, X
-  STA C1_ATTRIBUTE_CACHE + $40 + 1, X
-  STA C1_ATTRIBUTE_CACHE + $60, X
-  STA C1_ATTRIBUTE_CACHE + $60 + 1, X
-
-  ; get C (BL)
-  LDA COL_ATTR_VM_START, Y
-  CLC
-  AND #$30
-  LSR A
-  LSR A
-  STA C1_ATTRIBUTE_CACHE + 2, X
-  STA C1_ATTRIBUTE_CACHE + 3, X
-  STA C1_ATTRIBUTE_CACHE + ATTR_WORK_BYTE_2, X
-  STA C1_ATTRIBUTE_CACHE + ATTR_WORK_BYTE_3, X
-
-  ; get D (BR)
-  LDA COL_ATTR_VM_START, Y
-  AND #$C0
-  LSR A
-  LSR A
-  LSR A
-  LSR A
-  STA C1_ATTRIBUTE_CACHE + $40 + 2, X
-  STA C1_ATTRIBUTE_CACHE + $40 + 3, X
-  STA C1_ATTRIBUTE_CACHE + $60 + 2, X
-  STA C1_ATTRIBUTE_CACHE + $60 + 3, X
-
-  INX
-  INX
-  INX
-  INX
-
-  INY
-  CPY #$08
-  BNE :-
-
-  INC COLUMN_1_DMA
-  STZ COL_ATTR_HAS_VALUES
-  RTS
-
-; uses DMA channel 2 to copy a buffer of column attributes
-dma_column_attributes:
-  STZ COLUMN_1_DMA
-
-  ; write vertically for columns
-  LDA #$81
-  STA VMAIN
-
-  LDX #$04
-
-  LDA #.hibyte(C1_ATTRIBUTE_CACHE)
-  STA C1_ATTR_DMA_SRC_HB
-  LDA #.lobyte(C1_ATTRIBUTE_CACHE)
-  STA C1_ATTR_DMA_SRC_LB
-
-: STZ DMAP6
-
-  LDA #$19
-  STA BBAD6
-
-  LDA #$7E
-  STA A1B6
-
-  LDA C1_ATTR_DMA_SRC_HB
-  STA A1T6H
-  LDA C1_ATTR_DMA_SRC_LB
-  STA A1T6L
-
-  LDA C1_ATTR_DMA_SIZE_LB
-  STA DAS6L
-  LDA C1_ATTR_DMA_SIZE_HB
-  STA DAS6H
-
-  LDA C1_ATTR_DMA_VMADDH
-  STA VMADDH
-  LDA C1_ATTR_DMA_VMADDL
-  STA VMADDL
-
-  LDA #$40
-  STA MDMAEN
-
-  INC C1_ATTR_DMA_VMADDL
-  LDA C1_ATTR_DMA_SRC_LB
-  CLC
-  ADC #$20
-  STA C1_ATTR_DMA_SRC_LB
-  DEX
-  BNE :-
-
-  LDY #$0F
-  LDA #$00
-: STA COLUMN_1_DMA,Y
-  DEY
-  BPL :-
-  LDA #$FF
-  STA COLUMN_1_DMA + 1
-
-  LDA #$80
-  STA VMAIN
-
-  RTS
 
 ; X should contain VMADDH
 ; Y should contain VMADDL

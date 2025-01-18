@@ -16,9 +16,10 @@ nmi:
     PHA
     PHX
     PHY
-    stz did_audio_conversion_this_frame
+    setAXY8
     ; sometimes the NES doesn't RTI, so we're going to set defaults for when it does that here
     ; jslb set_scrolling_hdma_defaults, $a0
+    jslb store_current_hdma_values, $a0
     jslb dma_oam_table_long, $a0
     jslb check_for_palette_updates, $a0
     jslb check_and_copy_attribute_buffer_l, $a0
@@ -49,18 +50,17 @@ return_from_nes_nmi:
 
     ; handle sprite traslation last, since if that bleeds out of vblank it's ok
     jslb snes_nmi, $a0
-    jslb check_for_palette_updates, $a0
 
     LDA SCANLINE_FOR_IRQ
     CMP #$FF
     beq :+
-    jslb audio_interrupt_1, $a0
-    LDA #$FF
-    sta SCANLINE_FOR_IRQ  
+        jslb audio_interrupt_1, $a0
+        LDA #$FF
+        sta SCANLINE_FOR_IRQ  
     :
     jslb convert_audio, $a0
     
-
+    jslb msu_nmi_check, $b2
     jslb translate_8by8only_nes_sprites_to_oam, $a0
 
     PLY
@@ -80,6 +80,6 @@ _rti:
 :   LDA #$A1
     PHA
     PLB
-    BRA start
+    JMP start
 
     rti

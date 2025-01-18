@@ -42,19 +42,25 @@
   RTS
 
 ; sound init - 8179
-  LDA #$00
-  jsr WriteAPUControl ; STA ApuStatus_4015
+  ; LDA #$00
+  ; jsr WriteAPUControl ; STA ApuStatus_4015
+  jslb mute_apu_control, $a0
+  nop
+
   LDX #$E0
 : STA $071F,X
   DEX
   BNE :-
-  LDA #$8D
-  STA $07F0
-  LDA #$40
-  STA $07F2
-  LDA #$60
-  STA $07F3
+ 
+  jslb double_dragon_2_mute_nsf_copy, $b2
+  ; LDA #$8D
+  ; STA $07F0
+  ; LDA #$40
+  ; STA $07F2
+  ; LDA #$60
+  ; STA $07F3
   RTS
+  nops 11
 
 .byte $2C, $FE, $07, $10, $69, $AD, $FE, $07, $29, $20
 .byte $F0, $15, $AD, $FE, $07, $29, $40, $D0, $0E, $CE, $22, $07, $D0, $09, $AD, $23

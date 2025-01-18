@@ -1,6 +1,6 @@
 .segment "HEADER"
 ;      012345678901234567890
-.byte "GAME NAME GOES HERE  " ; ROM name, must be 21 chars
+.byte "DOUBLEDRAGONIISNESv10" ; ROM name, must be 21 chars
        
                 
 .segment "ROMSPEC"

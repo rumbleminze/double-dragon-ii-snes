@@ -623,8 +623,18 @@
 .byte $4C, $B6, $A0, $85, $19, $29, $70, $4A, $4A, $4A, $4A, $A8, $A5, $19, $29, $0F
 .byte $99, $53, $06, $EE, $5D, $06, $60, $01, $12, $41, $81, $00, $11, $31, $10, $21
 .byte $32, $90, $02, $11, $20, $30, $40, $A0, $40, $90, $7F, $4C, $D7, $A0, $60, $20
-.byte $02, $40, $02, $90, $02, $F0, $02, $AD, $35, $04, $C9, $00, $D0, $03, $4C, $F9
-.byte $A1, $AD, $22, $04, $C9, $06, $D0, $E6, $20, $0F, $A2, $B0, $E1, $A9, $5F, $85
+.byte $02, $40, $02, $90, $02, $F0, $02, $AD, $35, $04
+
+; this is a check in Level 6 that prevents platforms from disappearing
+; on Easy.  It also unfortunately keeps them from appearing, so we change
+; it so the logic is the same for all difficulties
+
+  CMP #$00
+  BRA :+    ; BNE :+
+  JMP $A1F9 ; on easy we'd normally go here
+: LDA $0422
+
+.byte $C9, $06, $D0, $E6, $20, $0F, $A2, $B0, $E1, $A9, $5F, $85
 .byte $29, $A9, $A1, $85, $2A, $A5, $D1, $D0, $08, $A9, $7A, $85, $29, $A9, $A1, $85
 
 
